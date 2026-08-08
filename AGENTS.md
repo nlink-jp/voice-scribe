@@ -216,3 +216,16 @@ a never-verified model exactly like a verified one — so the only evidence a us
 had was a table that looked healthy. The CHECKED column and `models verify`
 exist for that. When adding a safety check, ask what the existing state looks
 like to someone who has it, not just what new operations will do.
+
+**Diarization fails in both directions, and only one was documented.** The
+guidance covered "everyone merged into one speaker → lower the threshold" and
+said nothing about over-splitting, whose remedy is the opposite. Real material
+found it: a 39-minute recording with continuous background music returned 93
+speakers under the default threshold, and 0.9 gave a plausible cast. When
+writing guidance for a tunable, describe both ends of it.
+
+**A well-formed wrong answer needs a warning, because nothing else will say
+anything.** That diarization produced valid JSON with every segment labelled;
+no error, no failed validation. `transcript.Diagnose` exists for exactly that
+shape of failure. Its thresholds are deliberately loose — a warning that fires
+on good results teaches people to ignore it.

@@ -47,6 +47,39 @@ type Audio struct {
 	Duration float64
 }
 
+// Slice returns the portion starting at offsetSec and running for durationSec.
+// A durationSec of zero (or past the end) runs to the end.
+//
+// It exists so that a request to work on part of a recording actually costs
+// part of the work. Whisper takes an offset of its own, but the diarization
+// runtime does not: without this, transcribing thirty seconds of a forty-minute
+// file still means computing speaker embeddings over the whole forty minutes.
+//
+// The result shares the underlying array; callers must not mutate it.
+func (a Audio) Slice(offsetSec, durationSec float64) Audio {
+	if offsetSec <= 0 && durationSec <= 0 {
+		return a
+	}
+
+	start := int(offsetSec * SampleRate)
+	if start < 0 {
+		start = 0
+	}
+	if start > len(a.Samples) {
+		start = len(a.Samples)
+	}
+
+	end := len(a.Samples)
+	if durationSec > 0 {
+		if n := start + int(durationSec*SampleRate); n < end {
+			end = n
+		}
+	}
+
+	out := a.Samples[start:end]
+	return Audio{Samples: out, Duration: float64(len(out)) / float64(SampleRate)}
+}
+
 // Decode reads path and returns 16 kHz mono float PCM.
 func Decode(path string) (Audio, error) {
 	cPath := C.CString(path)

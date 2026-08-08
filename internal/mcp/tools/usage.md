@@ -91,10 +91,27 @@ voice-scribe models pull pyannote-segmentation-3
 voice-scribe models pull campplus-speaker-embedding
 ```
 
-It needs voices that genuinely differ. **When everyone comes back as one
-speaker, that is usually the honest answer**, not a failure — but if you know
-there were more, pin `speakers`, or lower `speaker_threshold` (0.5 by default;
-lower splits more readily).
+It needs voices that genuinely differ, and it can fail in **either** direction.
+
+**Too few speakers.** Everyone comes back as one. That is usually the honest
+answer, not a failure — but if you know there were more, pin `speakers`, or
+*lower* `speaker_threshold` below the default 0.5 so it splits more readily.
+
+**Too many speakers.** A result carrying dozens of "people", many of whom speak
+exactly once. This is the common failure on material with **continuous
+background music**: the embedding model sees music mixed with voice, so one
+person's embeddings scatter and get split apart. Pin `speakers`, or *raise*
+`speaker_threshold` above 0.5 so it merges more readily. Measured on a 39-minute
+drama recording with music throughout: the default gave 93 speakers, and 0.9
+gave a plausible cast.
+
+The result carries a `warning` field when the speaker count looks like
+over-splitting rather than a real cast. It is well-formed output either way, so
+nothing else would tell you.
+
+**Calibrate on a slice, not the whole file.** `offset_seconds` and
+`duration_seconds` apply to diarization too, so a few minutes of audio is enough
+to find a threshold and costs seconds rather than minutes.
 
 Labels follow first appearance, so `A` is whoever spoke first.
 

@@ -43,6 +43,11 @@ type Result struct {
 	Segments int      `json:"segments"`
 	Speakers []string `json:"speakers,omitempty"`
 	Duration float64  `json:"duration_seconds"`
+
+	// Warning describes a result that is well-formed but probably wrong —
+	// diarization that over-split, most often. Without it an agent has no way
+	// to tell ninety-three imaginary speakers from a real cast.
+	Warning string `json:"warning,omitempty"`
 }
 
 // resultFor decides between inline text and a path plus excerpt.
@@ -76,6 +81,11 @@ func resultFor(rel, abs, format, content string, threshold int, r transcript.Res
 	// reporting ["A"] would suggest diarization ran and found one person.
 	if !r.Metadata.Diarized {
 		out.Speakers = nil
+	}
+
+	if d, flagged := transcript.Diagnose(r); flagged {
+		out.Warning = fmt.Sprintf("%d speakers across %d segments (%d speaking once). %s",
+			d.Speakers, d.Segments, d.Singletons, d.Advice)
 	}
 
 	if len(content) <= threshold {

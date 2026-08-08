@@ -123,23 +123,13 @@ func (m *mcpTranscriber) diarize(decoded audio.Audio, req tools.Request) ([]tran
 		threshold = m.rt.Config.Diarize.Threshold
 	}
 
-	found, err := diarize.Run(decoded.Samples, diarize.Models{
-		Segmentation: segmentation.Path,
-		Embedding:    embedding.Path,
-	}, diarize.Params{
+	// Same slice the transcription covered — see diarizeSlice for why both the
+	// cut and the shift are needed.
+	return diarizeSlice(decoded, segmentation.Path, embedding.Path, diarize.Params{
 		NumSpeakers: req.Speakers,
 		Threshold:   threshold,
 		Threads:     m.rt.Config.Transcribe.Threads,
-	}, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	turns := make([]transcript.SpeakerTurn, 0, len(found))
-	for _, t := range found {
-		turns = append(turns, transcript.SpeakerTurn{Start: t.Start, End: t.End, Speaker: t.Speaker})
-	}
-	return turns, nil
+	}, req.OffsetSec, req.DurationSec, nil)
 }
 
 // listModelsView backs the list_models tool with the same views that back

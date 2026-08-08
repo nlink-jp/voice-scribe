@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Found by running a real 39-minute drama recording with continuous background
+music through the MCP server. It came back with **93 speakers**, and nothing in
+the output said anything was wrong.
+
+### Fixed
+
+- **`--offset` / `--duration` now apply to diarization.** They only ever reached
+  whisper, so transcribing thirty seconds of a forty-minute file still computed
+  speaker embeddings over the whole forty minutes. Measured on that recording: a
+  60-second slice with diarization went from about five minutes to 22 seconds.
+  This is also what makes calibrating a threshold practical at all.
+
+### Added
+
+- **A warning when the speaker count looks like over-splitting** — many
+  speakers, a large share of them speaking exactly once. Diarization can fail
+  while producing perfectly well-formed output: every segment labelled, the JSON
+  valid, nothing raised. The MCP result carries it as `warning`; the CLI prints
+  it to stderr.
+
+### Changed
+
+- **The documentation covered only half the failure.** It said what to do when
+  everyone merges into one speaker (lower the threshold) and nothing about the
+  opposite, whose remedy is the reverse. Both directions are now described, with
+  continuous background music named as the usual cause of over-splitting, and
+  calibrating on a slice recommended over the whole file.
+
 ## [0.1.2] - 2026-08-08
 
 ### Added

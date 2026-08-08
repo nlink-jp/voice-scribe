@@ -90,9 +90,23 @@ voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint Tanaka,Sa
 ```
 
 Diarization is two models working together — one finds speaker changes, the
-other decides which changes belong to the same person — and it needs voices that
-genuinely differ. When everyone comes back merged into one speaker, either pin
-the count with `--speakers` or lower `--speaker-threshold`.
+other decides which changes belong to the same person — and it can fail in
+either direction.
+
+If everyone comes back merged into **one** speaker, pin the count with
+`--speakers` or *lower* `--speaker-threshold`. If it comes back with implausibly
+**many** — dozens of people, most speaking once — pin the count or *raise* the
+threshold above its 0.5 default. Continuous background music is the usual cause
+of the second: the embedding model sees music mixed with voice, so one person's
+embeddings scatter. voice-scribe prints a warning when the count looks like
+over-splitting, because the transcript is well-formed either way.
+
+Calibrate on a slice rather than the whole file — `--offset` and `--duration`
+apply to diarization too:
+
+```bash
+voice-scribe transcribe long.wav --lang ja --diarize --offset 300 --duration 300 --speaker-threshold 0.9
+```
 
 Every catalog model is pinned to a SHA256 and verified on download, so a
 substituted file is refused rather than parsed. `voice-scribe models verify`

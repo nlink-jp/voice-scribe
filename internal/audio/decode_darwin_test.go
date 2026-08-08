@@ -173,3 +173,47 @@ func TestUnsupportedFormatSuggestsAFix(t *testing.T) {
 		t.Errorf("error %q should tell the user how to convert the file", err)
 	}
 }
+
+// TestSliceCutsTheWorkDown is why Slice exists: the diarization runtime has no
+// offset of its own, so without this, transcribing a slice of a long recording
+// still costs speaker embeddings over the whole thing.
+func TestSliceCutsTheWorkDown(t *testing.T) {
+	full := Audio{Samples: make([]float32, 10*SampleRate), Duration: 10}
+
+	for name, tc := range map[string]struct {
+		offset, duration float64
+		wantSeconds      float64
+	}{
+		"middle":          {offset: 2, duration: 3, wantSeconds: 3},
+		"from an offset":  {offset: 7, duration: 0, wantSeconds: 3},
+		"leading portion": {offset: 0, duration: 4, wantSeconds: 4},
+		"whole thing":     {offset: 0, duration: 0, wantSeconds: 10},
+		"past the end":    {offset: 2, duration: 999, wantSeconds: 8},
+		"offset past end": {offset: 99, duration: 0, wantSeconds: 0},
+		"negative offset": {offset: -5, duration: 2, wantSeconds: 2},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := full.Slice(tc.offset, tc.duration)
+			if math.Abs(got.Duration-tc.wantSeconds) > 0.001 {
+				t.Errorf("Duration = %g, want %g", got.Duration, tc.wantSeconds)
+			}
+			if len(got.Samples) != int(tc.wantSeconds*SampleRate) {
+				t.Errorf("len(Samples) = %d, want %d", len(got.Samples), int(tc.wantSeconds*SampleRate))
+			}
+		})
+	}
+}
+
+// TestSliceStartsWhereItSays pins the property the caller depends on to shift
+// the timeline back: sample n of the slice is sample offset+n of the original.
+func TestSliceStartsWhereItSays(t *testing.T) {
+	full := Audio{Samples: make([]float32, 4*SampleRate), Duration: 4}
+	for i := range full.Samples {
+		full.Samples[i] = float32(i)
+	}
+
+	got := full.Slice(1, 1)
+	if got.Samples[0] != float32(SampleRate) {
+		t.Errorf("slice starts at sample %v, want %d", got.Samples[0], SampleRate)
+	}
+}

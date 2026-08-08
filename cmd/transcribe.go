@@ -184,6 +184,14 @@ func runTranscribe(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%w — the audio may be silent, or in a language the model does not handle", err)
 	}
 
+	// A diarization that over-split produces a perfectly well-formed transcript,
+	// so nothing else in this path would say a word about it.
+	if d, flagged := transcript.Diagnose(out); flagged {
+		fmt.Fprintf(cmd.ErrOrStderr(),
+			"warning: %d speakers across %d segments (%d of them speaking once). %s\n",
+			d.Speakers, d.Segments, d.Singletons, d.Advice)
+	}
+
 	files, err := transcript.Render(out, format)
 	if err != nil {
 		return err
@@ -229,17 +237,39 @@ func runDiarization(rt *runtimeContext, decoded audio.Audio, progress *progressR
 	}
 
 	progress.stage("identifying speakers")
-	found, err := diarize.Run(decoded.Samples, diarize.Models{
-		Segmentation: segmentation.Path,
-		Embedding:    embedding.Path,
-	}, params, progress.percent)
+	return diarizeSlice(decoded, segmentation.Path, embedding.Path, params,
+		transcribeOpts.offset, transcribeOpts.duration, progress.percent)
+}
+
+// diarizeSlice runs diarization over the same stretch of audio the
+// transcription covered, and returns turns on the transcript's timeline.
+//
+// The slicing matters because the diarization runtime has no offset of its own:
+// without it, transcribing thirty seconds of a forty-minute recording still
+// costs speaker embeddings over the whole forty minutes. The shift matters
+// because whisper reports absolute timestamps while a sliced diarization
+// reports times from the start of the slice — leaving that out would attribute
+// every line to the wrong moment.
+func diarizeSlice(decoded audio.Audio, segmentation, embedding string, params diarize.Params,
+	offsetSec, durationSec float64, report diarize.Progress) ([]transcript.SpeakerTurn, error) {
+
+	found, err := diarize.Run(decoded.Slice(offsetSec, durationSec).Samples, diarize.Models{
+		Segmentation: segmentation,
+		Embedding:    embedding,
+	}, params, report)
 	if err != nil {
 		return nil, err
 	}
 
+	shift := offsetSec
+	if shift < 0 {
+		shift = 0
+	}
 	turns := make([]transcript.SpeakerTurn, 0, len(found))
 	for _, t := range found {
-		turns = append(turns, transcript.SpeakerTurn{Start: t.Start, End: t.End, Speaker: t.Speaker})
+		turns = append(turns, transcript.SpeakerTurn{
+			Start: t.Start + shift, End: t.End + shift, Speaker: t.Speaker,
+		})
 	}
 	return turns, nil
 }
