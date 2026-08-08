@@ -8,9 +8,9 @@ macOS 向けのローカル音声文字起こし。
 
 API キー不要。音声はマシンの外に出ません。
 
-> **プレリリース。** 現在このリポジトリにあるのは scaffold と疎通確認済みのビルド
-> スパイクだけです。whisper.cpp のリンクと Metal の有効化は確認済みですが、文字起こしは
-> まだ実装されていません。[CHANGELOG.md](CHANGELOG.md) を参照してください。
+> **プレリリース。** 文字起こしは実際に動きます。話者分離と MCP サーバーは未実装で、
+> `voice-scribe mcp` を実行するとその旨を報告します。[CHANGELOG.md](CHANGELOG.md)
+> を参照してください。
 
 ## 目的
 
@@ -45,20 +45,43 @@ make build-engine
 
 ## 使い方
 
+モデルを導入してから文字起こしします:
+
 ```bash
-voice-scribe doctor
+voice-scribe models pull kotoba-whisper-v2.2
 ```
 
-バイナリにリンクされているランタイムと、実際にコンパイルされた ggml バックエンドを、
-ランタイム自身から読み取って報告します:
-
-```
-runtime:      whisper.cpp
-capabilities: WHISPER : COREML = 0 | OPENVINO = 0 | MTL : EMBED_LIBRARY = 1 | ...
+```bash
+voice-scribe transcribe meeting.m4a --lang ja
 ```
 
-残りのコマンド（`transcribe` / `models` / `mcp`）は scaffold のみで未実装です。
-実行するとどのフェーズで実装されるかを報告します。設計の全体は
+既定では JSON を stdout に出力します。タイムスタンプ付きで、エンベロープは
+gem-transcribe と互換です。進捗は stderr に出るので、文字起こし結果をそのまま
+パイプに流せます。
+
+その他の形式・オプション:
+
+```bash
+voice-scribe transcribe interview.mp4 -f srt -o interview.srt
+```
+
+| フラグ | 内容 |
+|---|---|
+| `-m, --model` | モデル指定。省略時は `--lang` に合うモデル、次に設定の既定モデルが選ばれる |
+| `--lang` | 入力言語（ISO 639-1）。省略時は自動判定 |
+| `--translate` | 英訳も生成。whisper の translate は別デコードなので音声を 2 回通し、タイムスタンプでマージする |
+| `--prompt` | 固有名詞・専門用語で語彙をバイアス |
+| `-f, --format` | `json`（既定）/ `text` / `md` / `srt` / `vtt` |
+| `--offset` / `--duration` | 音声の一部だけを処理 |
+| `--vad` | 無音区間をゲートしてハルシネーションを抑制。`models pull silero-vad` が必要 |
+| `-q, --quiet` | stderr への進捗表示を止める |
+
+`voice-scribe models list --catalog` で導入可能なモデル（日本語特化・多言語、
+サイズとライセンス付き）を一覧できます。`voice-scribe doctor` はバイナリに
+リンクされているランタイムと ggml バックエンドを、ランタイム自身から読み取って
+報告します。
+
+話者分離（`--diarize`）と MCP サーバーは未実装です。設計の全体は
 [docs/ja/voice-scribe-rfp.ja.md](docs/ja/voice-scribe-rfp.ja.md)（正本）にあります。
 
 ## 設定

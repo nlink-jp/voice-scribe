@@ -107,7 +107,11 @@ The envelope is **compatible with gem-transcribe**, so that downstream consumers
 
 - `text` is a **language-code → text map**, the same shape gem-transcribe uses
   for `--lang=en,ja` (original plus translation). In voice-scribe an `en` key
-  appears when `--translate` is given.
+  appears when `--translate` is given. **Added 2026-08-08**: whisper's translate
+  task is a separate decode rather than an extra output, so getting both the
+  original and the translation means running the audio through twice. It roughly
+  doubles the time, and because the two passes choose different segment
+  boundaries the results are merged by time overlap, which is an approximation.
 - `speaker` is a constant `"A"` for every segment when `--diarize` is off; with
   diarization it is `A`/`B`/…, or the supplied names when `--speaker-hint` is used.
 - `dropped_segments` is always present for shape compatibility and is normally 0
@@ -348,8 +352,11 @@ Rationale:
 - Whisper works in 30-second chunks. Long recordings are handled by sequential
   long-form transcription (already implemented in whisper.cpp), but sentences
   split across chunk boundaries are unavoidable
-- `large-v3-turbo` at q5 needs roughly 1.6 GB of memory, and Metal has a cold-load
-  cost — which is precisely what makes the resident (MCP / serve) mode valuable
+- `large-v3-turbo` at q5 is about 550 MB. ~~Metal has a cold-load cost, which is
+  what makes the resident (MCP / serve) mode valuable~~ — **corrected 2026-08-08**:
+  the 8.8-second Metal library init is one-time shader compilation cached by the
+  OS, and warm runs take 0.011 s. The case for a resident engine rests on model
+  loading, not Metal. See ADR-0001
 - Hugging Face issues 302 redirects to Xet storage (a known issue from
   image-forge: a range GET returns a manifest while a full GET returns real bytes)
 

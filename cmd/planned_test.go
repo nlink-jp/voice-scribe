@@ -10,11 +10,6 @@ import (
 // release unnoticed.
 func TestPlannedCommandsRefuse(t *testing.T) {
 	for _, args := range [][]string{
-		{"transcribe", "audio.m4a"},
-		{"models", "list"},
-		{"models", "pull", "kotoba-whisper-v2.2"},
-		{"models", "import", "model.bin"},
-		{"models", "rm", "kotoba-whisper-v2.2"},
 		{"mcp"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {

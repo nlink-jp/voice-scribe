@@ -8,9 +8,9 @@ hands the same capability to an agent whose model cannot process audio.
 
 No API key. No audio leaves the machine.
 
-> **Pre-release.** This repository currently contains the scaffold and a
-> verified build spike — the whisper.cpp runtime links and Metal is active, but
-> transcription is not implemented yet. See [CHANGELOG.md](CHANGELOG.md).
+> **Pre-release.** Transcription works end to end. Speaker diarization and the
+> MCP server are not implemented yet — `voice-scribe mcp` says so when run. See
+> [CHANGELOG.md](CHANGELOG.md).
 
 ## Why
 
@@ -45,22 +45,44 @@ first build takes a few minutes. The result is a single self-contained binary in
 
 ## Usage
 
+Install a model, then transcribe:
+
 ```bash
-voice-scribe doctor
+voice-scribe models pull kotoba-whisper-v2.2
 ```
 
-Reports the runtime linked into the binary and the ggml backends it was compiled
-with, read from the runtime itself:
-
-```
-runtime:      whisper.cpp
-capabilities: WHISPER : COREML = 0 | OPENVINO = 0 | MTL : EMBED_LIBRARY = 1 | ...
+```bash
+voice-scribe transcribe meeting.m4a --lang ja
 ```
 
-The remaining commands — `transcribe`, `models`, `mcp` — are scaffolded but not
-implemented yet; each reports which phase fills it in. The full design is in
-[docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md) (the Japanese edition
-is the source of truth).
+Output is JSON on stdout by default, with timestamps and an envelope compatible
+with gem-transcribe. Progress goes to stderr, so piping the transcript is safe.
+
+Other formats and options:
+
+```bash
+voice-scribe transcribe interview.mp4 -f srt -o interview.srt
+```
+
+| Flag | What it does |
+|---|---|
+| `-m, --model` | Pick a model. Without it, a model matching `--lang` is chosen, then the configured default |
+| `--lang` | Input language (ISO 639-1). Detected when omitted |
+| `--translate` | Also produce English. Whisper's translate task is a separate decode, so this runs the audio through twice and merges by timestamp |
+| `--prompt` | Bias the decoder's vocabulary with proper nouns and jargon |
+| `-f, --format` | `json` (default), `text`, `md`, `srt`, `vtt` |
+| `--offset` / `--duration` | Transcribe a slice of the audio |
+| `--vad` | Gate silence, suppressing hallucinated text. Needs `models pull silero-vad` |
+| `-q, --quiet` | No progress on stderr |
+
+`voice-scribe models list --catalog` shows what can be installed —
+Japanese-specialised models alongside multilingual ones, with sizes and
+licenses. `voice-scribe doctor` reports the runtime linked into the binary and
+the ggml backends it was compiled with, read from the runtime itself.
+
+Speaker diarization (`--diarize`) and the MCP server are not implemented yet.
+The full design is in [docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md)
+(the Japanese edition is the source of truth).
 
 ## Configuration
 

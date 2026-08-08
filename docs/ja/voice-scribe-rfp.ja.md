@@ -102,6 +102,9 @@ gem-transcribe と**互換のエンベロープ**を採用する。後段（meet
 
 - `text` は**言語コード → テキストのマップ**。gem-transcribe の `--lang=en,ja`
   （原文＋翻訳）と同じ形。voice-scribe では `--translate` 指定時に `en` キーが増える。
+  **2026-08-08 追記**: whisper の translate は「出力の追加」ではなく**別デコード**
+  なので、原文と英訳の両方を得るには音声を 2 回通す必要がある。所要時間は約 2 倍になり、
+  2 パスのセグメント境界が一致しないため時間の重なりでマージする（近似）。
 - `speaker` は `--diarize` 無効時は全セグメント `"A"` 固定。有効時は `A`/`B`/…、
   `--speaker-hint` 指定時は与えられた名前。
 - `dropped_segments` は形状互換のため常に存在し、通常 0
@@ -318,8 +321,10 @@ whisper 系モデルは量子化・言語適性・速度のトレードオフが
   Silero VAD ゲート（whisper.cpp 側にサポートあり）を既定 ON にして緩和する
 - whisper は 30 秒チャンク単位。長尺は sequential long-form で処理される
   （whisper.cpp が対応済み）が、チャンク境界での文の分断は避けられない
-- `large-v3-turbo` q5 で約 1.6GB のメモリ。Metal の cold-load があるため
-  常駐（MCP / serve）の価値が高い
+- `large-v3-turbo` q5 で約 550MB。~~Metal の cold-load があるため常駐（MCP / serve）の
+  価値が高い~~ → **2026-08-08 訂正**: Metal ライブラリの初期化 8.8 秒は初回のシェーダ
+  コンパイルのみで OS がキャッシュし、2 回目以降は 0.011 秒だった。常駐の根拠は
+  Metal ではなくモデルのロード時間にある。詳細は ADR-0001
 - Hugging Face の Xet ストレージへの 302 リダイレクトがある（image-forge の既知事項。
   range GET はマニフェストを返すが全体 GET は実バイトを返す）
 

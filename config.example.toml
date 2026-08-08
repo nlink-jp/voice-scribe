@@ -20,8 +20,10 @@ default_model = "kotoba-whisper-v2.2"
 format = "json"
 
 # Gate silent stretches through VAD. Whisper hallucinates repeated phrases over
-# silence and music-only passages; this suppresses most of it.
-vad = true
+# silence and music-only passages, and this suppresses most of it — but it needs
+# a separate VAD model, so it is off by default rather than failing on a fresh
+# install. Run `voice-scribe models pull silero-vad` first, then turn it on.
+vad = false
 
 # Inference threads. 0 lets the runtime decide.
 threads = 0
