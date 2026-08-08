@@ -5,11 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.3] - 2026-08-09
 
-Found by running a real 39-minute drama recording with continuous background
-music through the MCP server. It came back with **93 speakers**, and nothing in
-the output said anything was wrong.
+Everything here came out of running one real 39-minute drama recording — music
+throughout, a cast of voice actors — through the MCP server. It came back with
+**93 speakers**, and nothing in the output said anything was wrong.
 
 ### Fixed
 
