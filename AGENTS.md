@@ -237,3 +237,11 @@ effective" — written from expectation, never measured, and wrong. CLAUDE.md
 already forbids exactly that ("do not write model behaviour from memory"); the
 rule was in the file and still got broken, so treat any performance or accuracy
 adjective in these docs as a claim that needs a measurement behind it.
+
+**`--prompt` does not fix misheard proper nouns.** Four prompts containing a
+correct surname — kanji, katakana, in a list, used in a sentence — all still
+produced the wrong one on the same audio, and some cost correct lines elsewhere.
+The initial prompt conditions register and context; it is not a lexicon. If a
+real vocabulary constraint is ever wanted, whisper_full_params carries
+grammar_rules for grammar-constrained decoding — that is the mechanism, and it
+would need an ADR.

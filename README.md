@@ -129,9 +129,15 @@ voice-scribe transcribe drama.wav --lang ja \
 A comma-separated list of names is not that. Measured on a Japanese drama
 recording, a noun list broke lines that were correct without any prompt, while a
 sentence-form prompt over the same audio recovered whole lines the unprompted run
-had dropped — including a name it had lost. A bad prompt makes things worse, so
-try it on a slice with `--offset`/`--duration` and compare before committing to a
-long file.
+had dropped — including a name it had lost. **It does not reliably fix a specific misheard name**, which is what people most
+want it for: on that recording a surname came out as カモスタ, and four prompts
+containing the correct spelling — kanji, katakana, listed, and used in a sentence
+— all still produced the wrong one, some at the cost of correct lines elsewhere.
+The prompt shapes register and context, not the acoustic model's ear; expect to
+fix stubborn names by editing the transcript afterwards.
+
+A bad prompt makes things worse, so try it on a slice with `--offset`/`--duration`
+and compare before committing to a long file.
 
 `voice-scribe models list --catalog` shows what can be installed —
 Japanese-specialised models alongside multilingual ones, with sizes and

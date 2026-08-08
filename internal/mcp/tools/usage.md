@@ -87,9 +87,16 @@ good:  "ここはピアキャロット。美優先輩とさくらちゃんが働
 bad:   "ピアキャロット、美優、さくら、期末試験"
 ```
 
-It is not a reliable fix for a specific misheard word, and a badly phrased one
-makes things worse. Try it on a slice (`offset_seconds`/`duration_seconds`) and
-compare before applying it to a long recording.
+**It does not reliably fix a specific misheard name**, which is the thing people
+most want it for. On the recording above, a surname came out as カモスタ / かもした;
+four prompts containing the correct name — kanji, katakana, listed, and used in a
+sentence — all still produced the wrong one, and some cost correct lines
+elsewhere. The prompt shapes register and context, not the acoustic model's ear.
+
+So: use it to improve overall coherence, and expect to fix stubborn names by
+editing the transcript afterwards. Try it on a slice
+(`offset_seconds`/`duration_seconds`) and compare before applying it to a long
+recording.
 
 ### `list_models`
 
