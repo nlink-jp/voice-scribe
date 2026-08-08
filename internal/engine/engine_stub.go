@@ -11,3 +11,10 @@ const Linked = false
 func Describe() Info {
 	return Info{Available: false}
 }
+
+// Open always fails in a binary built without the runtime. Returning the error
+// here rather than omitting the symbol keeps everything above this package
+// compiling and testable without cmake or the Metal toolchain.
+func Open(modelPath string) (Session, error) {
+	return nil, ErrNoRuntime
+}
