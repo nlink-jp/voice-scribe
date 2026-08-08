@@ -5,10 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-08-08
 
-Feature-complete against the design: transcription, speaker diarization and the
-MCP server all work end to end. Nothing is scaffolded any more.
+First release. Local speech-to-text for macOS: a CLI that transcribes audio and
+labels who is speaking, and an MCP server that hands the same capability to an
+agent whose model cannot process audio. No API key, and no audio leaves the
+machine.
 
 ### Added — MCP server (Phase 2b)
 
