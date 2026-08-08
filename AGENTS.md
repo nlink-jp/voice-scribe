@@ -241,7 +241,14 @@ adjective in these docs as a claim that needs a measurement behind it.
 **`--prompt` does not fix misheard proper nouns.** Four prompts containing a
 correct surname — kanji, katakana, in a list, used in a sentence — all still
 produced the wrong one on the same audio, and some cost correct lines elsewhere.
-The initial prompt conditions register and context; it is not a lexicon. If a
-real vocabulary constraint is ever wanted, whisper_full_params carries
-grammar_rules for grammar-constrained decoding — that is the mechanism, and it
-would need an ADR.
+The initial prompt conditions register and context; it is not a lexicon.
+
+**Nor does grammar-constrained decoding — that earlier note here was wrong.**
+whisper_full_params carries grammar_rules, and this file used to call it "the
+mechanism" for constraining vocabulary. Measured: a grammar permitting arbitrary
+text plus the wanted name produces output byte-identical to no grammar at all,
+because the penalty only subtracts from tokens the grammar *rejects* and nothing
+is rejected. A grammar tight enough to bite destroys the transcript instead —
+and still does not emit the name. See ADR-0005 for the mechanism, the numbers,
+and where proper nouns get fixed instead. **Do not re-open this by reasoning; it
+is measured.**
