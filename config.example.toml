@@ -1,0 +1,39 @@
+# voice-scribe configuration
+#
+# Searched in order:
+#   $VOICE_SCRIBE_CONFIG
+#   ~/.config/voice-scribe/config.toml
+#   ./config.toml
+#
+# Environment variables override the values here (e.g. $VOICE_SCRIBE_MODELS_DIR).
+# Copy this file to one of the paths above and edit.
+
+# Model used when `--model` is not given. Japanese-optimised by default.
+default_model = "kotoba-whisper-v2.2"
+
+# Where downloaded models live. Whisper weights run to gigabytes, so point this
+# at a larger disk if the home volume is tight. `~` is expanded.
+# models_dir = "~/.local/share/voice-scribe/models"
+
+[transcribe]
+# Default output format: json | text | md | srt | vtt
+format = "json"
+
+# Gate silent stretches through VAD. Whisper hallucinates repeated phrases over
+# silence and music-only passages; this suppresses most of it.
+vad = true
+
+# Inference threads. 0 lets the runtime decide.
+threads = 0
+
+[diarize]
+# Speaker diarization is off by default: it loads a second runtime and costs
+# extra time. Turn it on here, or per-run with `--diarize`.
+enabled = false
+min_speakers = 1
+max_speakers = 8
+
+[mcp]
+# Transcripts at or below this many bytes are returned inline to the agent;
+# larger ones are written to a file and returned as a path with an excerpt.
+inline_threshold = 8192
