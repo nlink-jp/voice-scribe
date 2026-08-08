@@ -44,7 +44,7 @@ meeting-notes スキルへ渡す前提とする。
 | `--translate` | 英語訳を併記（whisper の translate タスク）。`text` に `en` キーが増える |
 | `--diarize` | 話者分離を有効化 |
 | `--speakers <N>` | 話者数を固定 |
-| `--min-speakers` / `--max-speakers` | 話者数の探索範囲 |
+| ~~`--min-speakers` / `--max-speakers`~~ → `--speaker-threshold` | **2026-08-08 訂正**: sherpa-onnx のクラスタラは「正確な数」か「距離」のどちらかしか取らず、範囲指定の概念が無い。実在するつまみに置き換えた（ADR-0002） |
 | `--speaker-hint <names>` | 話者ラベルを A/B/C ではなく指定名に割り当て |
 | `--prompt <text>` | 語彙バイアス（whisper の initial prompt）。固有名詞・専門用語対策 |
 | `--offset <sec>` / `--duration <sec>` | 部分処理 |
@@ -136,8 +136,7 @@ threads = 0          # 0 = 自動
 
 [diarize]
 enabled = false
-min_speakers = 1
-max_speakers = 8
+# threshold = 0.5   # 2026-08-08 訂正: min/max ではなく距離しきい値
 
 [mcp]
 inline_threshold = 8192
@@ -249,7 +248,7 @@ whisper 系モデルは量子化・言語適性・速度のトレードオフが
 - pyannote-segmentation-3.0 + speaker embedding モデルをカタログに追加（`kind` 拡張）
 - diarization タイムラインと whisper セグメントのマージ（境界不一致の解決規則を
   純関数として切り出しテスト）
-- `--speakers` / `--min-speakers` / `--max-speakers` / `--speaker-hint`
+- `--speakers` / `--speaker-threshold` / `--speaker-hint`（min/max は ADR-0002 で撤回）
 - ONNX 再配布ライセンスの確認と帰属表記
 
 **Phase 2b — MCP サーバー（独立レビュー可）**
@@ -332,10 +331,12 @@ whisper 系モデルは量子化・言語適性・速度のトレードオフが
 
 - **CGO × Metal のためクロスコンパイル不可 → darwin/arm64 単一リリース**
   （image-forge と同じ制約）
-- ONNX Runtime の静的リンクは whisper.cpp ほど枯れていないため、Phase 2a 着手時に
-  バイナリサイズと署名への影響を実測する
-- pyannote-segmentation-3.0 の ONNX 再配布ライセンス（sherpa-onnx による export）は
-  Phase 2a 着手時に確認し、必要なら帰属表記を README に追加する
+- ONNX Runtime の静的リンク → **2026-08-08 実測完了**: バイナリ 10.2MB → 29.5MB
+  (+19.3MB)。動的依存の追加は OS 標準フレームワークのみで第三者 dylib はゼロ。
+  詳細と上流 pin 破損の件は ADR-0002
+- pyannote-segmentation-3.0 の ONNX 再配布ライセンス → **2026-08-08 確認完了**:
+  MIT © 2022 CNRS（ONNX パッケージが原本の LICENSE を同梱）。埋め込みモデルの
+  3D-Speaker campplus は Apache-2.0。README に帰属表記を追加済み
 
 ### 既知の地雷（先回りで潰す）
 

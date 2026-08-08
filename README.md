@@ -8,8 +8,8 @@ hands the same capability to an agent whose model cannot process audio.
 
 No API key. No audio leaves the machine.
 
-> **Pre-release.** Transcription works end to end. Speaker diarization and the
-> MCP server are not implemented yet — `voice-scribe mcp` says so when run. See
+> **Pre-release.** Transcription and speaker diarization work end to end. The
+> MCP server is not implemented yet — `voice-scribe mcp` says so when run. See
 > [CHANGELOG.md](CHANGELOG.md).
 
 ## Why
@@ -73,16 +73,35 @@ voice-scribe transcribe interview.mp4 -f srt -o interview.srt
 | `-f, --format` | `json` (default), `text`, `md`, `srt`, `vtt` |
 | `--offset` / `--duration` | Transcribe a slice of the audio |
 | `--vad` | Gate silence, suppressing hallucinated text. Needs `models pull silero-vad` |
+| `--diarize` | Label who is speaking. Needs the two diarization models |
+| `--speakers` | Pin the speaker count when you know it |
+| `--speaker-threshold` | Clustering distance when the count is unknown; lower splits more readily |
+| `--speaker-hint` | Names to use instead of A/B/C, in order of first appearance |
 | `-q, --quiet` | No progress on stderr |
+
+To label who is speaking, install the two diarization models and add `--diarize`:
+
+```bash
+voice-scribe models pull pyannote-segmentation-3 && voice-scribe models pull campplus-speaker-embedding
+```
+
+```bash
+voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint Tanaka,Sato
+```
+
+Diarization is two models working together — one finds speaker changes, the
+other decides which changes belong to the same person — and it needs voices that
+genuinely differ. When everyone comes back merged into one speaker, either pin
+the count with `--speakers` or lower `--speaker-threshold`.
 
 `voice-scribe models list --catalog` shows what can be installed —
 Japanese-specialised models alongside multilingual ones, with sizes and
 licenses. `voice-scribe doctor` reports the runtime linked into the binary and
 the ggml backends it was compiled with, read from the runtime itself.
 
-Speaker diarization (`--diarize`) and the MCP server are not implemented yet.
-The full design is in [docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md)
-(the Japanese edition is the source of truth).
+The MCP server is not implemented yet. The full design is in
+[docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md) (the Japanese edition
+is the source of truth).
 
 ## Configuration
 
@@ -94,8 +113,14 @@ the file; `--config` overrides both.
 
 MIT — see [LICENSE](LICENSE).
 
-This binary statically links third-party MIT-licensed code, whose copyright
-notices are retained here as that license requires:
+This binary statically links third-party code under permissive licences, whose
+copyright notices are retained here as those licences require:
 
 - [whisper.cpp](https://github.com/ggml-org/whisper.cpp) — MIT © 2023-2026 The ggml authors
 - [ggml](https://github.com/ggml-org/ggml) — MIT © 2023-2026 The ggml authors
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — Apache-2.0, The k2-fsa authors
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) — MIT © Microsoft Corporation
+
+The models are downloaded rather than bundled, and carry their own licences:
+pyannote segmentation is MIT © 2022 CNRS, and the 3D-Speaker embedding model is
+Apache-2.0. `voice-scribe models list` shows the licence of everything installed.

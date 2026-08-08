@@ -36,7 +36,18 @@ type Entry struct {
 	License      string
 	// Default marks the entry suggested for its language when nothing is set.
 	Default bool
+	// Role separates the two halves of a diarization pair. It is empty for
+	// every other kind.
+	Role Role
 }
+
+// Role distinguishes the two models diarization needs from each other.
+type Role string
+
+const (
+	RoleSegmentation Role = "segmentation"
+	RoleEmbedding    Role = "embedding"
+)
 
 // URL is where the weights are fetched from.
 func (e Entry) URL() string {
@@ -54,7 +65,25 @@ func (e Entry) Model(path string) store.Model {
 		SizeBytes:    e.SizeBytes,
 		License:      e.License,
 		Source:       e.Repo + "/" + e.File,
+		Role:         string(e.Role),
 	}
+}
+
+// DiarizationPair returns the default segmentation and embedding entries.
+// Diarization needs both; neither is useful alone.
+func DiarizationPair() (segmentation, embedding Entry, ok bool) {
+	for _, e := range entries {
+		if e.Kind != store.KindDiarization || !e.Default {
+			continue
+		}
+		switch e.Role {
+		case RoleSegmentation:
+			segmentation = e
+		case RoleEmbedding:
+			embedding = e
+		}
+	}
+	return segmentation, embedding, segmentation.Name != "" && embedding.Name != ""
 }
 
 // entries is the catalog. Quantized builds are preferred throughout: q5_0 is
@@ -114,6 +143,34 @@ var entries = []Entry{
 		Quantization: "q5_1",
 		SizeBytes:    59707625,
 		License:      "mit",
+	},
+	{
+		// Speaker diarization needs two models working together: segmentation
+		// finds speech regions and speaker changes, embedding turns each region
+		// into a vector that can be clustered. Neither is useful alone, so
+		// `models pull` for either one tells the user about the other.
+		Name:        "pyannote-segmentation-3",
+		Kind:        store.KindDiarization,
+		Description: "Speaker segmentation for --diarize. Pair with an embedding model.",
+		Repo:        "csukuangfj/sherpa-onnx-pyannote-segmentation-3-0",
+		File:        "model.onnx",
+		SizeBytes:   5992913,
+		// The ONNX export ships pyannote's own MIT licence, (c) 2022 CNRS. The
+		// upstream Hugging Face repo is gated; this mirror is not.
+		License: "mit",
+		Default: true,
+		Role:    RoleSegmentation,
+	},
+	{
+		Name:        "campplus-speaker-embedding",
+		Kind:        store.KindDiarization,
+		Description: "Speaker embedding for --diarize. Trained on Chinese and English; voice identity transfers across languages.",
+		Repo:        "csukuangfj/speaker-embedding-models",
+		File:        "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
+		SizeBytes:   28281164,
+		License:     "apache-2.0",
+		Default:     true,
+		Role:        RoleEmbedding,
 	},
 	{
 		Name:        "silero-vad",

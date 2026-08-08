@@ -142,18 +142,18 @@ func TestPartialFileKeepsDefaultsForEverythingElse(t *testing.T) {
 	env := testEnv(t, nil)
 	write(t, filepath.Join(env.WorkDir, "config.toml"), `
 [diarize]
-max_speakers = 3
+threshold = 0.3
 `)
 
 	cfg, _, err := Load("", env)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Diarize.MaxSpeakers != 3 {
-		t.Errorf("MaxSpeakers = %d, want 3", cfg.Diarize.MaxSpeakers)
+	if cfg.Diarize.Threshold != 0.3 {
+		t.Errorf("Threshold = %g, want 0.3", cfg.Diarize.Threshold)
 	}
-	if cfg.Diarize.MinSpeakers != 1 {
-		t.Errorf("MinSpeakers = %d, want the default 1 to survive a partial file", cfg.Diarize.MinSpeakers)
+	if cfg.Diarize.Enabled {
+		t.Error("Enabled should stay false when a partial file does not set it")
 	}
 	if cfg.Transcribe.Format != "json" {
 		t.Errorf("Format = %q, want the default to survive", cfg.Transcribe.Format)
@@ -210,8 +210,7 @@ func TestModelsDirExpandsHome(t *testing.T) {
 func TestValidateRejectsImpossibleSettings(t *testing.T) {
 	for name, mutate := range map[string]func(*Config){
 		"negative threads":    func(c *Config) { c.Transcribe.Threads = -1 },
-		"zero min speakers":   func(c *Config) { c.Diarize.MinSpeakers = 0 },
-		"max below min":       func(c *Config) { c.Diarize.MinSpeakers, c.Diarize.MaxSpeakers = 4, 2 },
+		"negative threshold":  func(c *Config) { c.Diarize.Threshold = -0.1 },
 		"negative mcp inline": func(c *Config) { c.MCP.InlineThreshold = -1 },
 	} {
 		t.Run(name, func(t *testing.T) {

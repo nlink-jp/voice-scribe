@@ -2,9 +2,10 @@
 
 ## What this is
 
-A local speech-to-text tool: a CLI that transcribes audio with whisper.cpp, plus
-(eventually) an MCP server that hands the same capability to agents whose model
-cannot process audio. No API key; audio never leaves the machine.
+A local speech-to-text tool: a CLI that transcribes audio with whisper.cpp and
+labels who is speaking with sherpa-onnx, plus (eventually) an MCP server that
+hands the same capability to agents whose model cannot process audio. No API
+key; audio never leaves the machine.
 
 It is the local counterpart of **gem-transcribe** (Vertex AI Gemini) and the
 reverse direction of **voice-studio-mcp** (local TTS). Downstream consumers such
@@ -17,18 +18,17 @@ as the **meeting-notes** skill read its JSON directly.
 
 ## Status
 
-**Pre-release.** Transcription works end to end: decode → model → formatted
-output. Still scaffolded, in `cmd/planned.go`: speaker diarization (Phase 2a) and
-the MCP server (Phase 2b).
+**Pre-release.** Transcription and speaker diarization work end to end. Still
+scaffolded, in `cmd/planned.go`: the MCP server (Phase 2b).
 
 ## Build and test
 
 ```bash
-make build          # scaffold binary, no runtime (engine reports ErrNoRuntime)
-make deps           # build whisper.cpp static libraries (cmake + Metal toolchain)
-make build-engine   # full binary with the runtime statically linked
+make build          # scaffold binary, no runtimes (they report ErrNoRuntime)
+make deps           # build both native runtimes (cmake + Metal toolchain)
+make build-engine   # full binary with both runtimes statically linked
 make test           # test suite (equivalent to `go test ./...`)
-make test-engine    # same suite against the real runtime (-tags cgo_whisper)
+make test-engine    # same suite against the real runtimes (both tags)
 make build-all      # build-engine + Developer ID signing
 make package        # signed + notarized release zip
 ```
@@ -36,9 +36,14 @@ make package        # signed + notarized release zip
 Never run `go build` directly — it drops a binary in the project root. Always
 `make build`, which outputs to `dist/`.
 
-Most of the code is testable without the runtime: everything above
-`internal/engine` is pure Go and `make test` covers it. Only changes to the cgo
-bridge itself need `make test-engine`.
+There are two build tags, one per native runtime: `cgo_whisper` for
+transcription and `cgo_sherpa` for diarization. They are separate so that a
+machine which cannot fetch the ONNX Runtime archive still gets a working
+transcription binary — which is not hypothetical, see ADR-0002.
+
+Most of the code is testable without either runtime: everything above
+`internal/engine` and `internal/diarize` is pure Go and `make test` covers it.
+Only changes to the cgo bridges need `make test-engine`.
 
 ## Structure
 
@@ -56,12 +61,14 @@ cmd/
 internal/
   audio/                     AVFoundation decoder (cgo + Objective-C)
   config/                    TOML resolution, strict decoding
+  diarize/                   sherpa-onnx wrapper, behind cgo_sherpa
   catalog/                   the curated model list
   download/                  resumable HTTP fetch
   engine/                    whisper.cpp wrapper, split across a build tag
   store/                     the installed-model registry
   transcript/                output envelope, formatters, language merging
 third_party/whisper.cpp/     submodule (ggml-org/whisper.cpp)
+third_party/sherpa-onnx/     submodule (k2-fsa/sherpa-onnx), pinned to a release tag
 docs/{en,ja}/                RFP and guides; ja is the source of truth
 docs/adr/                    architecture decision records
 scripts/                     codesign / notarize / homebrew, from org templates
@@ -127,11 +134,42 @@ tolerates it, and normalising would silently change levels between files.
 stage and no percentages. Writing the in-place redraw unconditionally turned a
 single model download into 63 KB of carriage returns in a log file.
 
-**`go test ./...` works here.** whisper.cpp's Go bindings are a nested module
-(`bindings/go/go.mod`), so `./...` skips them. The Makefile's `PKGS` filter is
-insurance against upstream dropping that go.mod, not a current requirement.
+**`go test ./...` does NOT work — use `make test`.** whisper.cpp's Go bindings
+are a nested module and are skipped, but sherpa-onnx carries a *non*-module Go
+package at `scripts/go/` that `./...` picks up and fails to build. The
+Makefile's `PKGS` filter excludes `third_party/` and is what makes the suite
+runnable. (This was insurance until the second submodule arrived and made it
+load-bearing.)
 
 **Catalog entries are facts, not guesses.** Every repo, filename, size and
 license in `internal/catalog` was read from the Hugging Face API. A wrong size
 defeats the truncation check; a wrong filename fails at download time. Verify
 upstream when adding an entry rather than copying a neighbour's values.
+
+**sherpa-onnx's config has no defaults getter.** Unlike whisper's
+`whisper_full_default_params()`, the C API offers nothing equivalent, so a
+zero-initialised `SherpaOnnxOfflineSpeakerDiarizationConfig` is not "sensible
+defaults" — it is a clustering threshold of 0, which collapses every turn into a
+single speaker. `internal/diarize` writes the documented values out explicitly;
+do not remove them believing the library will fill them in.
+
+**The sherpa-onnx submodule is pinned to a release tag, deliberately.** Its
+master branch pinned an ONNX Runtime archive whose SHA256 no longer matched the
+published asset, so the build could not configure at all. `make deps` fetches
+that archive itself (cmake's own downloader fails on this toolchain) and
+verifies the hash. If the checksum step fails after a submodule bump, read
+ADR-0002 before working around it.
+
+**Duplicate `-lc++` is deliberate.** Both cgo packages request it and the linker
+warns. Removing it from one breaks any build that links that package alone —
+`go test ./internal/diarize` most obviously. A package declares what it needs.
+
+**Speaker labels are remapped by first appearance.** sherpa returns arbitrary
+cluster indices; cluster 3 is not "the third person to speak". `AssignSpeakers`
+renumbers by time so that "A" is whoever spoke first, and `--speaker-hint` names
+follow the same order.
+
+**Verify the fixture before blaming the code.** A two-speaker test recording
+built with `say -v Otoya` was silently a *one*-speaker recording, because that
+voice is not installed and `say` falls back to the default without a word.
+Diarization reporting one speaker was correct. `say -v '?'` lists what exists.

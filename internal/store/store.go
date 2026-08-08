@@ -61,7 +61,17 @@ type Model struct {
 	SizeBytes    int64  `json:"size_bytes,omitempty"`
 	License      string `json:"license,omitempty"`
 	Source       string `json:"source,omitempty"`
+	// Role distinguishes the two models diarization needs — segmentation and
+	// embedding — which are the same Kind but not interchangeable. Empty for
+	// every other kind.
+	Role string `json:"role,omitempty"`
 }
+
+// Roles a diarization model can play.
+const (
+	RoleSegmentation = "segmentation"
+	RoleEmbedding    = "embedding"
+)
 
 // Multilingual reports whether the model handles languages other than one.
 func (m Model) Multilingual() bool { return m.Language == "" }
@@ -250,6 +260,40 @@ func (s *Store) Remove(name string, deleteFile bool) error {
 		}
 	}
 	return nil
+}
+
+// ResolveDiarization finds the installed segmentation and embedding models.
+//
+// Both are required and they are the same Kind, so a user who installed one and
+// not the other gets an error naming the missing half rather than a failure
+// inside the runtime.
+func (s *Store) ResolveDiarization() (segmentation, embedding Model, err error) {
+	models, err := s.List()
+	if err != nil {
+		return Model{}, Model{}, err
+	}
+
+	for _, m := range models {
+		if m.Kind != KindDiarization {
+			continue
+		}
+		switch m.Role {
+		case RoleSegmentation:
+			segmentation = m
+		case RoleEmbedding:
+			embedding = m
+		}
+	}
+
+	switch {
+	case segmentation.Name == "" && embedding.Name == "":
+		return Model{}, Model{}, fmt.Errorf("--diarize needs two models: run `voice-scribe models pull pyannote-segmentation-3` and `voice-scribe models pull campplus-speaker-embedding`")
+	case segmentation.Name == "":
+		return Model{}, Model{}, fmt.Errorf("--diarize also needs a segmentation model: run `voice-scribe models pull pyannote-segmentation-3`")
+	case embedding.Name == "":
+		return Model{}, Model{}, fmt.Errorf("--diarize also needs an embedding model: run `voice-scribe models pull campplus-speaker-embedding`")
+	}
+	return segmentation, embedding, nil
 }
 
 // Resolve picks the model to use for a run.

@@ -46,7 +46,7 @@ Flags for `transcribe`:
 | `--translate` | Also emit an English translation (whisper's translate task); adds an `en` key to `text` |
 | `--diarize` | Enable speaker diarization |
 | `--speakers <N>` | Pin the speaker count |
-| `--min-speakers` / `--max-speakers` | Search range for the speaker count |
+| ~~`--min-speakers` / `--max-speakers`~~ -> `--speaker-threshold` | **Corrected 2026-08-08**: sherpa-onnx's clusterer takes either an exact count or a distance, with no notion of a range. Replaced with the knob that exists (ADR-0002) |
 | `--speaker-hint <names>` | Assign given names instead of A/B/C labels |
 | `--prompt <text>` | Vocabulary biasing (whisper's initial prompt), for proper nouns and jargon |
 | `--offset <sec>` / `--duration <sec>` | Process a portion only |
@@ -147,8 +147,7 @@ threads = 0          # 0 = automatic
 
 [diarize]
 enabled = false
-min_speakers = 1
-max_speakers = 8
+# threshold = 0.5   # corrected 2026-08-08: a distance, not min/max
 
 [mcp]
 inline_threshold = 8192
@@ -271,7 +270,7 @@ audio file through the CLI.
   (extend `kind`)
 - Merge the diarization timeline with whisper segments (boundary-mismatch
   resolution factored out as a pure, tested function)
-- `--speakers` / `--min-speakers` / `--max-speakers` / `--speaker-hint`
+- `--speakers` / `--speaker-threshold` / `--speaker-hint` (min/max withdrawn; ADR-0002)
 - Verify the ONNX redistribution license and add attribution
 
 **Phase 2b — MCP server (independently reviewable)**
@@ -364,11 +363,14 @@ Rationale:
 
 - **CGO × Metal cannot be cross-compiled → a single darwin/arm64 release**
   (the same constraint as image-forge)
-- Static linking of ONNX Runtime is less well-trodden than whisper.cpp; measure
-  its effect on binary size and signing when Phase 2a starts
-- Confirm the redistribution license of the pyannote-segmentation-3.0 ONNX export
-  (produced by sherpa-onnx) at the start of Phase 2a, and add attribution to the
-  README if required
+- Static linking of ONNX Runtime -> **measured 2026-08-08**: the binary goes from
+  10.2 MB to 29.5 MB (+19.3 MB). The only added dynamic dependencies are system
+  frameworks; no third-party dylib. See ADR-0002, which also records how
+  upstream's pinned hash was found broken
+- Redistribution licence of the pyannote-segmentation-3.0 ONNX export ->
+  **confirmed 2026-08-08**: MIT (c) 2022 CNRS, with the original LICENSE shipped
+  inside the ONNX package. The 3D-Speaker campplus embedding model is
+  Apache-2.0. Attribution added to the README
 
 ### Known landmines (pre-empted)
 

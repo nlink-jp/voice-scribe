@@ -39,9 +39,11 @@ type Transcribe struct {
 
 // Diarize holds the defaults for speaker diarization.
 type Diarize struct {
-	Enabled     bool `toml:"enabled"`
-	MinSpeakers int  `toml:"min_speakers"`
-	MaxSpeakers int  `toml:"max_speakers"`
+	Enabled bool `toml:"enabled"`
+	// Threshold is the clustering distance used when the speaker count is not
+	// pinned. Zero takes the runtime's default. There is no min/max speaker
+	// setting because the clusterer has no such parameter.
+	Threshold float64 `toml:"threshold"`
 }
 
 // MCP holds the defaults for the MCP server.
@@ -61,9 +63,7 @@ func Default() Config {
 			Threads: 0,
 		},
 		Diarize: Diarize{
-			Enabled:     false,
-			MinSpeakers: 1,
-			MaxSpeakers: 8,
+			Enabled: false,
 		},
 		MCP: MCP{
 			InlineThreshold: 8192,
@@ -231,12 +231,8 @@ func (c Config) Validate() error {
 	if c.Transcribe.Threads < 0 {
 		return errors.New("transcribe.threads must be zero (automatic) or positive")
 	}
-	if c.Diarize.MinSpeakers < 1 {
-		return errors.New("diarize.min_speakers must be at least 1")
-	}
-	if c.Diarize.MaxSpeakers < c.Diarize.MinSpeakers {
-		return fmt.Errorf("diarize.max_speakers (%d) is below diarize.min_speakers (%d)",
-			c.Diarize.MaxSpeakers, c.Diarize.MinSpeakers)
+	if c.Diarize.Threshold < 0 {
+		return errors.New("diarize.threshold must not be negative")
 	}
 	if c.MCP.InlineThreshold < 0 {
 		return errors.New("mcp.inline_threshold must not be negative")

@@ -30,10 +30,16 @@ threads = 0
 
 [diarize]
 # Speaker diarization is off by default: it loads a second runtime and costs
-# extra time. Turn it on here, or per-run with `--diarize`.
+# extra time. Turn it on here, or per-run with `--diarize`. It needs two models:
+#   voice-scribe models pull pyannote-segmentation-3
+#   voice-scribe models pull campplus-speaker-embedding
 enabled = false
-min_speakers = 1
-max_speakers = 8
+
+# Clustering distance used when the speaker count is not pinned with --speakers.
+# Lower splits more readily, higher merges more readily; 0 takes the default of
+# 0.5. There is no min/max speaker setting because the clusterer takes either an
+# exact count or a distance, and nothing in between.
+# threshold = 0.5
 
 [mcp]
 # Transcripts at or below this many bytes are returned inline to the agent;

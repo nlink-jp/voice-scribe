@@ -8,7 +8,7 @@ macOS 向けのローカル音声文字起こし。
 
 API キー不要。音声はマシンの外に出ません。
 
-> **プレリリース。** 文字起こしは実際に動きます。話者分離と MCP サーバーは未実装で、
+> **プレリリース。** 文字起こしと話者分離は実際に動きます。MCP サーバーは未実装で、
 > `voice-scribe mcp` を実行するとその旨を報告します。[CHANGELOG.md](CHANGELOG.md)
 > を参照してください。
 
@@ -74,14 +74,32 @@ voice-scribe transcribe interview.mp4 -f srt -o interview.srt
 | `-f, --format` | `json`（既定）/ `text` / `md` / `srt` / `vtt` |
 | `--offset` / `--duration` | 音声の一部だけを処理 |
 | `--vad` | 無音区間をゲートしてハルシネーションを抑制。`models pull silero-vad` が必要 |
+| `--diarize` | 誰が話しているかをラベル付け。話者分離モデル 2 本が必要 |
+| `--speakers` | 話者数が分かっているときに固定する |
+| `--speaker-threshold` | 話者数不明時のクラスタリング距離。小さいほど分割されやすい |
+| `--speaker-hint` | A/B/C の代わりに使う名前。登場順に割り当てる |
 | `-q, --quiet` | stderr への進捗表示を止める |
+
+話者ラベルを付けるには、話者分離モデル 2 本を導入して `--diarize` を付けます:
+
+```bash
+voice-scribe models pull pyannote-segmentation-3 && voice-scribe models pull campplus-speaker-embedding
+```
+
+```bash
+voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint 田中,佐藤
+```
+
+話者分離は 2 つのモデルの協働です（一方が話者交代を見つけ、もう一方がどの交代が同一人物
+かを判断する）。声が実際に異なっている必要があり、**全員が 1 話者に統合されて返ってきた
+場合は、`--speakers` で人数を固定するか `--speaker-threshold` を下げてください**。
 
 `voice-scribe models list --catalog` で導入可能なモデル（日本語特化・多言語、
 サイズとライセンス付き）を一覧できます。`voice-scribe doctor` はバイナリに
 リンクされているランタイムと ggml バックエンドを、ランタイム自身から読み取って
 報告します。
 
-話者分離（`--diarize`）と MCP サーバーは未実装です。設計の全体は
+MCP サーバーは未実装です。設計の全体は
 [docs/ja/voice-scribe-rfp.ja.md](docs/ja/voice-scribe-rfp.ja.md)（正本）にあります。
 
 ## 設定
@@ -94,8 +112,14 @@ voice-scribe transcribe interview.mp4 -f srt -o interview.srt
 
 MIT — [LICENSE](LICENSE) を参照。
 
-このバイナリは第三者の MIT ライセンスコードを静的リンクしています。ライセンスが要求する
-著作権表示を以下に保持します:
+このバイナリは第三者のパーミッシブライセンスのコードを静的リンクしています。各ライセンスが
+要求する著作権表示を以下に保持します:
 
 - [whisper.cpp](https://github.com/ggml-org/whisper.cpp) — MIT © 2023-2026 The ggml authors
 - [ggml](https://github.com/ggml-org/ggml) — MIT © 2023-2026 The ggml authors
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — Apache-2.0, The k2-fsa authors
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) — MIT © Microsoft Corporation
+
+モデルは同梱せずダウンロードする形で、それぞれ独自のライセンスを持ちます: pyannote
+segmentation は MIT © 2022 CNRS、3D-Speaker の埋め込みモデルは Apache-2.0 です。
+導入済みモデルのライセンスは `voice-scribe models list` で確認できます。

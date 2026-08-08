@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nlink-jp/voice-scribe/internal/audio"
+	"github.com/nlink-jp/voice-scribe/internal/diarize"
 	"github.com/nlink-jp/voice-scribe/internal/engine"
 	"github.com/nlink-jp/voice-scribe/internal/store"
 	"github.com/nlink-jp/voice-scribe/internal/transcript"
@@ -26,6 +27,11 @@ var transcribeOpts struct {
 	output    string
 	vad       bool
 	quiet     bool
+
+	diarize          bool
+	speakers         int
+	speakerThreshold float64
+	speakerHints     []string
 }
 
 var transcribeCmd = &cobra.Command{
@@ -58,6 +64,12 @@ func init() {
 	f.StringVarP(&transcribeOpts.output, "output-file", "o", "", "Write to this file instead of stdout")
 	f.BoolVar(&transcribeOpts.vad, "vad", false, "Gate silence through the VAD model (needs `models pull silero-vad`)")
 	f.BoolVarP(&transcribeOpts.quiet, "quiet", "q", false, "Suppress progress output on stderr")
+
+	f.BoolVar(&transcribeOpts.diarize, "diarize", false, "Label who is speaking (needs the diarization models)")
+	f.IntVar(&transcribeOpts.speakers, "speakers", 0, "Pin the speaker count when it is known (0 = work it out)")
+	f.Float64Var(&transcribeOpts.speakerThreshold, "speaker-threshold", 0,
+		"Clustering distance when the count is unknown; lower splits more readily (0 = default)")
+	f.StringSliceVar(&transcribeOpts.speakerHints, "speaker-hint", nil, "Names to use instead of A/B/C, in order of first appearance")
 }
 
 func runTranscribe(cmd *cobra.Command, args []string) error {
@@ -144,10 +156,20 @@ func runTranscribe(cmd *cobra.Command, args []string) error {
 			translated = append(translated, transcript.Timed{Start: s.Start, End: s.End, Text: s.Text})
 		}
 	}
+	// Diarization is a second pass over the same samples with a different pair
+	// of models. It runs after transcription so that a failure here does not
+	// throw away work that already succeeded.
+	var turns []transcript.SpeakerTurn
+	if transcribeOpts.diarize || rt.Config.Diarize.Enabled {
+		turns, err = runDiarization(rt, decoded, progress)
+		if err != nil {
+			return err
+		}
+	}
 	elapsed := time.Since(started)
 	progress.done()
 
-	out := buildTranscript(source, model, decoded, result, translated, elapsed)
+	out := buildTranscript(source, model, decoded, result, translated, turns, elapsed)
 	if err := out.Validate(); err != nil {
 		return fmt.Errorf("%w — the audio may be silent, or in a language the model does not handle", err)
 	}
@@ -178,6 +200,40 @@ func resolveVAD(rt *runtimeContext, want bool) (string, error) {
 	return "", fmt.Errorf("--vad needs a VAD model: run `voice-scribe models pull silero-vad`")
 }
 
+func runDiarization(rt *runtimeContext, decoded audio.Audio, progress *progressReporter) ([]transcript.SpeakerTurn, error) {
+	segmentation, embedding, err := rt.Store.ResolveDiarization()
+	if err != nil {
+		return nil, err
+	}
+
+	params := diarize.Params{
+		NumSpeakers: transcribeOpts.speakers,
+		Threshold:   transcribeOpts.speakerThreshold,
+		Threads:     transcribeOpts.threads,
+	}
+	// The configured threshold applies only when the user gave neither a
+	// threshold nor a pinned count; otherwise a config file would silently
+	// override an explicit flag.
+	if params.Threshold == 0 && params.NumSpeakers == 0 {
+		params.Threshold = rt.Config.Diarize.Threshold
+	}
+
+	progress.stage("identifying speakers")
+	found, err := diarize.Run(decoded.Samples, diarize.Models{
+		Segmentation: segmentation.Path,
+		Embedding:    embedding.Path,
+	}, params, progress.percent)
+	if err != nil {
+		return nil, err
+	}
+
+	turns := make([]transcript.SpeakerTurn, 0, len(found))
+	for _, t := range found {
+		turns = append(turns, transcript.SpeakerTurn{Start: t.Start, End: t.End, Speaker: t.Speaker})
+	}
+	return turns, nil
+}
+
 // withTranslate returns the parameters for the English pass. The prompt is
 // dropped: it biases the decoder towards vocabulary in the source language,
 // which pulls the translation back towards it.
@@ -187,7 +243,7 @@ func withTranslate(p engine.Params) engine.Params {
 	return p
 }
 
-func buildTranscript(source string, model store.Model, decoded audio.Audio, result engine.Result, translated []transcript.Timed, elapsed time.Duration) transcript.Result {
+func buildTranscript(source string, model store.Model, decoded audio.Audio, result engine.Result, translated []transcript.Timed, turns []transcript.SpeakerTurn, elapsed time.Duration) transcript.Result {
 	language := result.Language
 	if language == "" {
 		language = "und"
@@ -208,6 +264,9 @@ func buildTranscript(source string, model store.Model, decoded audio.Audio, resu
 		segments = transcript.MergeLanguage(segments, "en", translated)
 		languages = append(languages, "en")
 	}
+	if len(turns) > 0 {
+		segments = transcript.AssignSpeakers(segments, turns, transcribeOpts.speakerHints)
+	}
 
 	duration := decoded.Duration
 	rtf := 0.0
@@ -224,6 +283,8 @@ func buildTranscript(source string, model store.Model, decoded audio.Audio, resu
 			DroppedSegments: 0,
 			Engine:          "whisper.cpp",
 			Translated:      transcribeOpts.translate,
+			Diarized:        len(turns) > 0,
+			SpeakerHints:    transcribeOpts.speakerHints,
 			RealTimeFactor:  &rtf,
 		},
 		Segments: segments,

@@ -7,8 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Transcription works end to end. Speaker diarization and the MCP server are still
+Transcription and speaker diarization work end to end. The MCP server is still
 scaffolded; `voice-scribe mcp` returns an error naming the phase that fills it in.
+
+### Added — speaker diarization (Phase 2a)
+
+- `--diarize` labels who is speaking, using sherpa-onnx with a pyannote
+  segmentation model and a 3D-Speaker embedding model. `--speakers` pins the
+  count when it is known, `--speaker-threshold` tunes the clustering when it is
+  not, and `--speaker-hint` replaces A/B/C with real names.
+- Speaker labels follow first appearance rather than the clusterer's arbitrary
+  indices, so "A" is whoever spoke first.
+- The diarization runtime sits behind its own `cgo_sherpa` build tag, so a
+  machine that cannot fetch the ONNX Runtime archive still gets a working
+  transcription binary.
+
+### Changed
+
+- **`--min-speakers` and `--max-speakers` were dropped before they shipped.**
+  sherpa-onnx's clusterer takes either an exact speaker count or a distance
+  threshold, with no notion of a range, so the flags the RFP named could not
+  have done anything. `--speaker-threshold` replaces them, and the
+  `[diarize] min_speakers`/`max_speakers` settings became `[diarize] threshold`.
 
 ### Added — transcription (Phase 1)
 
@@ -60,3 +80,7 @@ scaffolded; `voice-scribe mcp` returns an error naming the phase that fills it i
 - Progress output detects whether it is writing to a terminal. It previously
   emitted in-place redraws unconditionally, which turned a single model download
   into 63 KB of carriage returns in a log file.
+- Diarization verified on a two-speaker Japanese recording: five turns, both
+  speakers detected automatically, every line attributed correctly.
+- Linking ONNX Runtime takes the binary from 10.2 MB to 29.5 MB. The only added
+  dynamic dependencies are system frameworks.
