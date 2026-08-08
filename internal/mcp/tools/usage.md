@@ -45,7 +45,7 @@ Needs `audio`. Everything else has a default worth knowing:
 | `format` | `json` | `json`, `text`, `md`, `srt`, `vtt` |
 | `output` | `output/<name>.<format>` | Where the transcript is written |
 | `translate` | off | Adds English. **Runs the audio through a second time**, so it roughly doubles the wait |
-| `prompt` | none | Proper nouns and jargon the model would otherwise mangle. Cheap and effective |
+| `prompt` | none | Context for the decoder. **Write it as a sentence, not a keyword list** — see below |
 | `diarize` | off | Labels who is speaking. Needs two more models |
 | `speakers` | worked out | Pin it when you know it — far more reliable than letting the clusterer decide |
 | `speaker_hints` | `A`, `B`, … | Names, in order of first appearance |
@@ -68,6 +68,28 @@ and `speakers` when diarization ran.
 
 Jobs are in-memory. After a server restart an old `job_id` returns
 `job_not_found`; re-submit `transcribe`.
+
+### Writing a useful `prompt`
+
+`prompt` is whisper's initial prompt: it conditions the decoder, it does not
+declare a vocabulary. **Phrasing changes the result more than content does.**
+
+Write a sentence or two describing the recording, in the register you expect to
+hear — who is in it, where it is set, what it is about. A comma-separated list
+of names is not that, and measurably degrades the output: on a Japanese drama
+recording, a noun list turned "いくらフェア中だからって" into "カモスタ中だからって"
+and broke neighbouring lines, while a sentence-form prompt over the same audio
+recovered whole lines the unprompted run had dropped, including a name it had
+lost entirely.
+
+```
+good:  "ここはピアキャロット。美優先輩とさくらちゃんが働いています。期末試験の話をしています。"
+bad:   "ピアキャロット、美優、さくら、期末試験"
+```
+
+It is not a reliable fix for a specific misheard word, and a badly phrased one
+makes things worse. Try it on a slice (`offset_seconds`/`duration_seconds`) and
+compare before applying it to a long recording.
 
 ### `list_models`
 

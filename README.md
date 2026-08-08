@@ -69,7 +69,7 @@ voice-scribe transcribe interview.mp4 -f srt -o interview.srt
 | `-m, --model` | Pick a model. Without it, a model matching `--lang` is chosen, then the configured default |
 | `--lang` | Input language (ISO 639-1). Detected when omitted |
 | `--translate` | Also produce English. Whisper's translate task is a separate decode, so this runs the audio through twice and merges by timestamp |
-| `--prompt` | Bias the decoder's vocabulary with proper nouns and jargon |
+| `--prompt` | Context for the decoder. Write it as a sentence, not a keyword list — see below |
 | `-f, --format` | `json` (default), `text`, `md`, `srt`, `vtt` |
 | `--offset` / `--duration` | Transcribe a slice of the audio |
 | `--vad` | Gate silence, suppressing hallucinated text. Needs `models pull silero-vad` |
@@ -113,6 +113,25 @@ substituted file is refused rather than parsed. `voice-scribe models verify`
 checks what is already installed and records the result; `models list` shows
 which entries have been checked, because a listing that cannot say otherwise
 reads as assurance.
+
+### Writing a useful `--prompt`
+
+`--prompt` is whisper's initial prompt: it conditions the decoder rather than
+declaring a vocabulary, and **how it is phrased matters more than what is in
+it**. Write a sentence or two describing the recording in the register you
+expect to hear.
+
+```bash
+voice-scribe transcribe drama.wav --lang ja \
+  --prompt "ここはピアキャロット。美優先輩とさくらちゃんが働いています。期末試験の話をしています。"
+```
+
+A comma-separated list of names is not that. Measured on a Japanese drama
+recording, a noun list broke lines that were correct without any prompt, while a
+sentence-form prompt over the same audio recovered whole lines the unprompted run
+had dropped — including a name it had lost. A bad prompt makes things worse, so
+try it on a slice with `--offset`/`--duration` and compare before committing to a
+long file.
 
 `voice-scribe models list --catalog` shows what can be installed —
 Japanese-specialised models alongside multilingual ones, with sizes and

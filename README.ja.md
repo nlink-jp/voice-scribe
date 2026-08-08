@@ -69,7 +69,7 @@ voice-scribe transcribe interview.mp4 -f srt -o interview.srt
 | `-m, --model` | モデル指定。省略時は `--lang` に合うモデル、次に設定の既定モデルが選ばれる |
 | `--lang` | 入力言語（ISO 639-1）。省略時は自動判定 |
 | `--translate` | 英訳も生成。whisper の translate は別デコードなので音声を 2 回通し、タイムスタンプでマージする |
-| `--prompt` | 固有名詞・専門用語で語彙をバイアス |
+| `--prompt` | デコーダへの文脈。**羅列ではなく文で書く** — 下記参照 |
 | `-f, --format` | `json`（既定）/ `text` / `md` / `srt` / `vtt` |
 | `--offset` / `--duration` | 音声の一部だけを処理 |
 | `--vad` | 無音区間をゲートしてハルシネーションを抑制。`models pull silero-vad` が必要 |
@@ -116,6 +116,25 @@ voice-scribe transcribe long.wav --lang ja --diarize --offset 300 --duration 300
 `voice-scribe models verify` で検証でき、結果は記録されます。`models list` は
 各エントリが検証済みかを表示します — 何を検証していないか言えない一覧は、
 それ自体が保証のように読めてしまうためです。
+
+### `--prompt` の書き方
+
+`--prompt` は whisper の initial prompt です。**語彙を宣言するものではなくデコーダを
+条件付けるもの**で、内容より**書き方のほうが結果を左右します**。想定される話し方の
+レジスタで、録音の内容を1〜2文で書いてください。
+
+```bash
+voice-scribe transcribe drama.wav --lang ja \
+  --prompt "ここはピアキャロット。美優先輩とさくらちゃんが働いています。期末試験の話をしています。"
+```
+
+**名前をカンマで並べたものは逆効果です。** 日本語のドラマ音源で実測したところ、
+名詞の羅列は prompt なしでは正しく取れていた行を壊し（「いくらフェア中だからって」→
+「カモスタ中だからって」）、同じ音源に文の形で与えた場合は prompt なしで落ちていた行が
+復元されました（失われていた人名を含む）。
+
+**下手な prompt は悪化させます。** 長い音源に適用する前に `--offset`/`--duration` で
+一部を切り出して比較してください。
 
 `voice-scribe models list --catalog` で導入可能なモデル（日本語特化・多言語、
 サイズとライセンス付き）を一覧できます。`voice-scribe doctor` はバイナリに

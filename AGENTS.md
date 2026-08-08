@@ -229,3 +229,11 @@ anything.** That diarization produced valid JSON with every segment labelled;
 no error, no failed validation. `transcript.Diagnose` exists for exactly that
 shape of failure. Its thresholds are deliberately loose — a warning that fires
 on good results teaches people to ignore it.
+
+**`--prompt` conditions the decoder; it does not declare a vocabulary.** Phrasing
+dominates content: a sentence describing the recording helps, a comma-separated
+name list measurably degrades output. The docs originally called it "cheap and
+effective" — written from expectation, never measured, and wrong. CLAUDE.md
+already forbids exactly that ("do not write model behaviour from memory"); the
+rule was in the file and still got broken, so treat any performance or accuracy
+adjective in these docs as a claim that needs a measurement behind it.

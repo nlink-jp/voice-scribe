@@ -29,6 +29,15 @@ the output said anything was wrong.
 
 ### Changed
 
+- **`--prompt` guidance was wrong, and the docs called it "cheap and
+  effective" without anyone having measured it.** It is whisper's initial
+  prompt: it conditions the decoder rather than declaring a vocabulary, and
+  phrasing matters more than content. Measured on two windows of a Japanese
+  drama recording: a comma-separated name list *broke* lines that were correct
+  with no prompt at all, while a sentence-form prompt over the same audio
+  recovered whole lines the unprompted run had dropped, including a name it had
+  lost entirely. Both READMEs and the MCP manual now show the two forms side by
+  side and recommend trying it on a slice first.
 - **The documentation covered only half the failure.** It said what to do when
   everyone merges into one speaker (lower the threshold) and nothing about the
   opposite, whose remedy is the reverse. Both directions are now described, with
