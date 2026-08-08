@@ -18,9 +18,15 @@ as the **meeting-notes** skill read its JSON directly.
 
 ## Status
 
-**Pre-release, feature-complete against the RFP.** Transcription, speaker
-diarization and the MCP server all work end to end. Nothing is scaffolded any
-more — `cmd/planned.go` is gone. What remains is Phase 3: release.
+**Released**, on the org's Homebrew tap, signed and notarized. Transcription,
+speaker diarization and the MCP server all work end to end; nothing is
+scaffolded (`cmd/planned.go` is gone).
+
+`git tag` is the authority on which version — **do not name one here.** This
+section said "not released yet" through four releases, and both READMEs repeated
+it directly above their own `brew install` line. A status written at scaffold
+time does not update itself; anything here that a release changes is a bug
+waiting to happen.
 
 ## Build and test
 

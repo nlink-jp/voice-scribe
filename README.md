@@ -8,10 +8,6 @@ hands the same capability to an agent whose model cannot process audio.
 
 No API key. No audio leaves the machine.
 
-> **Pre-release.** Everything the design calls for works: transcription,
-> speaker diarization, and the MCP server. Not released yet — see
-> [CHANGELOG.md](CHANGELOG.md).
-
 ## Why
 
 An agent driven by a model that cannot hear still needs to read recordings.
