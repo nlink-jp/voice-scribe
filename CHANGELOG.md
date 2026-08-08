@@ -18,7 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   permissive grammar rejects nothing. A grammar tight enough to bite collapsed 50
   seconds of dialogue into two sentences and still never produced the name, which
   was in its vocabulary. ADR-0005 records the mechanism, the measurements, and
-  the decision to fix proper nouns after transcription instead.
+  the decision to leave proper nouns to whoever has the context downstream.
+- **Source separation will not be added either.** sherpa-onnx is already linked
+  and already exposes it, and it is cheap (RTF 0.038). Measured on the same
+  recording: separating vocals recovered a line the original lost to a repetition
+  loop, left the misheard surname unchanged, and took diarization from 18
+  speakers to 14 on five minutes — still nowhere near the real cast, still
+  warning. Neither Spleeter's nor UVR's model *weights* state a licence, so
+  neither can go in the catalog. ADR-0006.
 
 ## [0.1.3] - 2026-08-09
 

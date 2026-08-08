@@ -230,6 +230,16 @@ no error, no failed validation. `transcript.Diagnose` exists for exactly that
 shape of failure. Its thresholds are deliberately loose — a warning that fires
 on good results teaches people to ignore it.
 
+**Removing the music does not fix the over-splitting, and the separation models
+cannot be shipped anyway.** sherpa-onnx — already linked — exposes source
+separation (Spleeter, UVR) and denoising (GTCRN, DPDFNet), so it looks like a
+free win sitting right there. Measured: separating vocals took over-splitting
+from 18 speakers to 14 on the same five minutes, still far off the real cast and
+still warning. It did recover a line the original lost to a repetition loop, and
+it left the misheard surname exactly as it was. The blocker is licensing —
+neither Spleeter's nor UVR's *weights* state one. See ADR-0006 before reaching
+for this again; threshold calibration remains the only remedy for over-splitting.
+
 **`--prompt` conditions the decoder; it does not declare a vocabulary.** Phrasing
 dominates content: a sentence describing the recording helps, a comma-separated
 name list measurably degrades output. The docs originally called it "cheap and
