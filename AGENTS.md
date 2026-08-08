@@ -209,3 +209,10 @@ between v1.9.2 and the pin include two memory-safety fixes on paths this tool
 exercises with untrusted input: a heap out-of-bounds read on very short audio,
 and a stack-buffer-overflow from a malformed model header. Moving "back to a
 release tag" for tidiness would drop both. Move forward when v1.9.3 ships.
+
+**A listing that cannot say what it has not checked reads as assurance.** v0.1.1
+added hash verification for downloads and shipped a `models list` that rendered
+a never-verified model exactly like a verified one — so the only evidence a user
+had was a table that looked healthy. The CHECKED column and `models verify`
+exist for that. When adding a safety check, ask what the existing state looks
+like to someone who has it, not just what new operations will do.

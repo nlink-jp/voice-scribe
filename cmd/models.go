@@ -132,13 +132,22 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 		if len(installed) == 0 {
 			fmt.Fprintln(out, "no models installed (run `voice-scribe models pull kotoba-whisper-v2.0`)")
 		} else {
+			// The CHECKED column exists because the previous listing rendered a
+			// never-verified model exactly like a verified one. An inventory
+			// that cannot say what it has not checked is worse than no
+			// inventory: it reads as assurance.
 			w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-			fmt.Fprintln(w, "NAME\tKIND\tLANG\tQUANT\tSIZE\tLICENSE")
+			fmt.Fprintln(w, "NAME\tKIND\tLANG\tQUANT\tSIZE\tLICENSE\tCHECKED")
 			for _, m := range installed {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-					m.Name, m.Kind, dash(m.Language), dash(m.Quantization), humanBytes(m.SizeBytes), dash(m.License))
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					m.Name, m.Kind, dash(m.Language), dash(m.Quantization),
+					humanBytes(m.SizeBytes), dash(m.License), checkedLabel(m))
 			}
 			w.Flush()
+
+			if hint := verifyHint(installed); hint != "" {
+				fmt.Fprintln(out, hint)
+			}
 		}
 		if showCatalog {
 			fmt.Fprintln(out)
@@ -338,6 +347,45 @@ func isInstalled(models []store.Model, name string) bool {
 		}
 	}
 	return false
+}
+
+// checkedLabel reports whether a registry entry carries a verified hash, and
+// whether the catalog still knows its name.
+func checkedLabel(m store.Model) string {
+	_, inCatalog := catalog.Lookup(m.Name)
+	switch {
+	case m.SHA256 != "" && inCatalog:
+		return "yes"
+	case m.SHA256 != "":
+		return "yes (not in catalog)"
+	case !inCatalog:
+		return "NO (not in catalog)"
+	default:
+		return "NO"
+	}
+}
+
+// verifyHint points at the command that resolves whatever the listing just
+// admitted to, rather than leaving the reader with a bare "NO".
+func verifyHint(installed []store.Model) string {
+	unchecked, orphaned := 0, 0
+	for _, m := range installed {
+		if m.SHA256 == "" {
+			unchecked++
+		}
+		if _, ok := catalog.Lookup(m.Name); !ok {
+			orphaned++
+		}
+	}
+	switch {
+	case orphaned > 0:
+		return "\nSome entries are unchecked or no longer in the catalog. " +
+			"Run `voice-scribe models verify --reconcile` — it checks them in place, without re-downloading."
+	case unchecked > 0:
+		return "\nSome entries have never been checked. Run `voice-scribe models verify`."
+	default:
+		return ""
+	}
 }
 
 func dash(s string) string {

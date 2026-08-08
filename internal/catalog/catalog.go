@@ -14,6 +14,7 @@ package catalog
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/nlink-jp/voice-scribe/internal/store"
 )
@@ -191,6 +192,36 @@ var entries = []Entry{
 		SHA256:      "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
 		License:     "mit",
 	},
+}
+
+// Expectations answers what a model should hash to, and which entry a hash
+// belongs to. It satisfies store.Expectation, which is declared over there so
+// that store does not have to import this package.
+type Expectations struct{}
+
+// HashFor returns the expected hash for a catalog entry.
+func (Expectations) HashFor(name string) (string, bool) {
+	e, ok := Lookup(name)
+	if !ok || e.SHA256 == "" {
+		return "", false
+	}
+	return e.SHA256, true
+}
+
+// NameForHash returns the catalog entry whose file has this hash.
+//
+// It is what lets an entry orphaned by a rename be recognised: the file on disk
+// is unchanged, so its hash still identifies which model it actually is.
+func (Expectations) NameForHash(sha string) (string, bool) {
+	if sha == "" {
+		return "", false
+	}
+	for _, e := range entries {
+		if strings.EqualFold(e.SHA256, sha) {
+			return e.Name, true
+		}
+	}
+	return "", false
 }
 
 // All returns the catalog, sorted by name.

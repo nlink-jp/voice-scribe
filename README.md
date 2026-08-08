@@ -95,7 +95,10 @@ genuinely differ. When everyone comes back merged into one speaker, either pin
 the count with `--speakers` or lower `--speaker-threshold`.
 
 Every catalog model is pinned to a SHA256 and verified on download, so a
-substituted file is refused rather than parsed.
+substituted file is refused rather than parsed. `voice-scribe models verify`
+checks what is already installed and records the result; `models list` shows
+which entries have been checked, because a listing that cannot say otherwise
+reads as assurance.
 
 `voice-scribe models list --catalog` shows what can be installed —
 Japanese-specialised models alongside multilingual ones, with sizes and

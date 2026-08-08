@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-08-08
+
+### Added
+
+- **`voice-scribe models verify`** hashes every installed model against the
+  catalog and records the result. v0.1.1 verified downloads but left everything
+  installed before it permanently unchecked, with no way to check it short of
+  deleting and re-downloading gigabytes that were almost certainly already
+  correct. A model that passes is recorded as verified in place.
+- **`--reconcile`** re-files an entry under the catalog name whose file it
+  actually matches. The v0.1.1 rename of the default Japanese model orphaned
+  existing installs: `models pull` no longer knew the name, and nothing said so.
+  The bytes on disk identify the model, so the fix is a registry rename —
+  nothing is downloaded and the file is not moved.
+
+### Changed
+
+- **`models list` reports whether each entry has been checked**, and whether the
+  catalog still knows its name. The previous listing rendered a never-verified
+  model exactly like a verified one, so a healthy-looking table was the only
+  evidence a user had. An inventory that cannot say what it has not checked is
+  worse than no inventory: it reads as assurance.
+
 ## [0.1.1] - 2026-08-08
 
 ### Security

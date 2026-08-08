@@ -94,7 +94,10 @@ voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint 田中,�
 場合は、`--speakers` で人数を固定するか `--speaker-threshold` を下げてください**。
 
 カタログの全モデルは SHA256 で pin されており、ダウンロード時に検証されます。
-差し替えられたファイルは解析されず拒否されます。
+差し替えられたファイルは解析されず拒否されます。導入済みのモデルは
+`voice-scribe models verify` で検証でき、結果は記録されます。`models list` は
+各エントリが検証済みかを表示します — 何を検証していないか言えない一覧は、
+それ自体が保証のように読めてしまうためです。
 
 `voice-scribe models list --catalog` で導入可能なモデル（日本語特化・多言語、
 サイズとライセンス付き）を一覧できます。`voice-scribe doctor` はバイナリに
