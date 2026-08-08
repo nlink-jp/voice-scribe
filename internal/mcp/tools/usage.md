@@ -76,21 +76,21 @@ declare a vocabulary. **Phrasing changes the result more than content does.**
 
 Write a sentence or two describing the recording, in the register you expect to
 hear — who is in it, where it is set, what it is about. A comma-separated list
-of names is not that, and measurably degrades the output: on a Japanese drama
-recording, a noun list turned "いくらフェア中だからって" into "カモスタ中だからって"
-and broke neighbouring lines, while a sentence-form prompt over the same audio
+of names is not that, and measurably degrades the output: on a Japanese
+recording, a noun list injected one of its own terms into an unrelated line and
+broke the lines around it, while a sentence-form prompt over the same audio
 recovered whole lines the unprompted run had dropped, including a name it had
 lost entirely.
 
 ```
-good:  "ここはピアキャロット。美優先輩とさくらちゃんが働いています。期末試験の話をしています。"
-bad:   "ピアキャロット、美優、さくら、期末試験"
+good:  "社内の定例ミーティングの録音です。新機能のリリース時期とテスト計画について話しています。"
+bad:   "定例ミーティング、リリース、テスト計画、新機能"
 ```
 
 **It does not reliably fix a specific misheard name**, which is the thing people
-most want it for. On the recording above, a surname came out as カモスタ / かもした;
-four prompts containing the correct name — kanji, katakana, listed, and used in a
-sentence — all still produced the wrong one, and some cost correct lines
+most want it for. On the recording above a surname came out wrong every time, and
+four prompts containing the correct one — kanji, katakana, listed, and used in a
+sentence — all still produced the wrong one, some at the cost of correct lines
 elsewhere. The prompt shapes register and context, not the acoustic model's ear.
 
 So: use it to improve overall coherence, and expect to fix stubborn names by
