@@ -8,9 +8,8 @@ macOS 向けのローカル音声文字起こし。
 
 API キー不要。音声はマシンの外に出ません。
 
-> **プレリリース。** 文字起こしと話者分離は実際に動きます。MCP サーバーは未実装で、
-> `voice-scribe mcp` を実行するとその旨を報告します。[CHANGELOG.md](CHANGELOG.md)
-> を参照してください。
+> **プレリリース。** 設計にある機能はすべて動きます（文字起こし・話者分離・MCP
+> サーバー）。リリースはまだです。[CHANGELOG.md](CHANGELOG.md) を参照してください。
 
 ## 目的
 
@@ -99,7 +98,24 @@ voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint 田中,�
 リンクされているランタイムと ggml バックエンドを、ランタイム自身から読み取って
 報告します。
 
-MCP サーバーは未実装です。設計の全体は
+## MCP サーバーとして使う
+
+`voice-scribe mcp` は stdio 上で Model Context Protocol を話し、音声を扱えない
+モデルで動くエージェントに録音を読む手段を与えます。クライアントには
+`voice-scribe mcp` というコマンドとして登録してください（引数は不要です）。
+
+ツールは 4 本: `get_usage` / `transcribe` / `check_job` / `list_models`。文字起こしは
+非同期で、`transcribe` が返すジョブ ID を `check_job` でポーリングします。短い転記は
+インラインで、長い転記はファイルパス＋抜粋で返ります（ファイルはどちらの場合も書かれます）。
+
+録音はエージェントが用意して呼び出しごとに指定するワークスペースに置き、すべてのパスは
+カーネルによってその中に封じ込められます。`get_usage` が完全なマニュアルを返すので、
+エージェントは最初の文字起こしの前に一度呼ぶべきです。
+
+**モデルのダウンロードは意図的に MCP から使えません** — 数百 MB の取得は端末にいる人間の
+判断です。`voice-scribe models pull` を使ってください。
+
+設計の全体は
 [docs/ja/voice-scribe-rfp.ja.md](docs/ja/voice-scribe-rfp.ja.md)（正本）にあります。
 
 ## 設定

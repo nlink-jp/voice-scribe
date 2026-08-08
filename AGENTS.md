@@ -3,9 +3,9 @@
 ## What this is
 
 A local speech-to-text tool: a CLI that transcribes audio with whisper.cpp and
-labels who is speaking with sherpa-onnx, plus (eventually) an MCP server that
-hands the same capability to agents whose model cannot process audio. No API
-key; audio never leaves the machine.
+labels who is speaking with sherpa-onnx, plus an MCP server that hands the same
+capability to agents whose model cannot process audio. No API key; audio never
+leaves the machine.
 
 It is the local counterpart of **gem-transcribe** (Vertex AI Gemini) and the
 reverse direction of **voice-studio-mcp** (local TTS). Downstream consumers such
@@ -18,8 +18,9 @@ as the **meeting-notes** skill read its JSON directly.
 
 ## Status
 
-**Pre-release.** Transcription and speaker diarization work end to end. Still
-scaffolded, in `cmd/planned.go`: the MCP server (Phase 2b).
+**Pre-release, feature-complete against the RFP.** Transcription, speaker
+diarization and the MCP server all work end to end. Nothing is scaffolded any
+more — `cmd/planned.go` is gone. What remains is Phase 3: release.
 
 ## Build and test
 
@@ -57,7 +58,8 @@ cmd/
   models.go                  list / pull / import / rm
   doctor.go                  reports the linked runtime and its backends
   progress.go                stderr status, terminal-aware
-  planned.go                 what is still scaffolded
+  mcp.go                     the MCP server command and stdout isolation
+  mcp_wiring.go              adapts the CLI paths to the MCP tool interfaces
 internal/
   audio/                     AVFoundation decoder (cgo + Objective-C)
   config/                    TOML resolution, strict decoding
@@ -65,6 +67,8 @@ internal/
   catalog/                   the curated model list
   download/                  resumable HTTP fetch
   engine/                    whisper.cpp wrapper, split across a build tag
+  mcp/                       the MCP server: skeleton ported from image-forge,
+                             plus tools/ (four tools and their usage.md)
   store/                     the installed-model registry
   transcript/                output envelope, formatters, language merging
 third_party/whisper.cpp/     submodule (ggml-org/whisper.cpp)
@@ -76,13 +80,8 @@ scripts/                     codesign / notarize / homebrew, from org templates
 
 ## Gotchas
 
-**Do not release with `cmd/planned.go` in the tree.** It exists so the RFP's
-command surface can be reviewed; every leaf returns an error naming the phase
-that fills it in. `planned_test.go` pins that they fail loudly rather than
-exiting 0 — an empty success is how a stub reaches a release unnoticed.
-
-**stdout is the transport.** `voice-scribe mcp` will speak JSON-RPC over stdout,
-and `transcribe` already writes the transcript there, so everything else —
+**stdout is the transport.** `voice-scribe mcp` speaks JSON-RPC over stdout,
+and `transcribe` writes the transcript there, so everything else —
 progress, runtime logs, warnings — goes to stderr. `engine.SetLogHandler` exists
 for exactly this: the runtime's log callbacks are installed unconditionally so
 the destination is ours to choose. Measured 2026-08-08: whisper's own output all
@@ -173,3 +172,28 @@ follow the same order.
 built with `say -v Otoya` was silently a *one*-speaker recording, because that
 voice is not installed and `say` falls back to the default without a word.
 Diarization reporting one speaker was correct. `say -v '?'` lists what exists.
+
+**A quiet server does not prove the stdout isolation works.** There are two
+defences — log callbacks at the source and `claimStdout()` repointing fd 1 at
+stderr — and the first one alone explains an empty stderr, because it filters
+info-level chatter. Nearly recorded that as evidence for the second. The
+mechanism is tested directly in `cmd/mcp_test.go` instead: write to the protocol
+handle, write to `os.Stdout`, check where each lands. When two defences cover
+the same failure, an observation explained by one is not evidence for both.
+
+**usage.md is machine-checked against the code.** It is the only document a
+client reads before operating the server, so drift is a real failure.
+`usage_test.go` pins that every registered tool, every returnable error code,
+every `transcribe` argument and every output format appears in it. Adding an
+argument without documenting it fails the build.
+
+**The MCP server opens a session per call rather than keeping one resident.**
+Deliberate — see ADR-0003. Jobs are serialised through one worker, so residency
+would only skip a reload between consecutive calls, at the cost of holding half
+a gigabyte in a server that may idle for hours. Change it when there is a
+measurement, not before.
+
+**The MCP skeleton is a port, and ports carry their origin's vocabulary.** When
+updating it from image-forge again, re-read the comments: "generation project",
+"init/mask images" and "rendered PNGs" all had to be rewritten, and a reader who
+meets them believes they are in an image-generation server.

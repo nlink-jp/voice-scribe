@@ -7,8 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Transcription and speaker diarization work end to end. The MCP server is still
-scaffolded; `voice-scribe mcp` returns an error naming the phase that fills it in.
+Feature-complete against the design: transcription, speaker diarization and the
+MCP server all work end to end. Nothing is scaffolded any more.
+
+### Added — MCP server (Phase 2b)
+
+- `voice-scribe mcp` serves the Model Context Protocol over stdio with four
+  tools: `get_usage`, `transcribe`, `check_job`, `list_models`. Transcription is
+  asynchronous through a single-worker job queue.
+- Recordings live in a workspace the agent prepares and names per call. Every
+  path is confined to it by the kernel (`os.Root`), so a symlink planted in the
+  workspace cannot make the server read or write outside it.
+- Transcripts come back inline when short and as a path with an excerpt when
+  long; the file is written either way, and the excerpt is cut at a rune
+  boundary so Japanese text does not arrive as replacement characters.
+- `get_usage` returns a full operating manual, and tests pin it against the code:
+  every tool, error code, transcribe argument and output format must appear in
+  it.
+- stdout is claimed for the protocol and fd 1 is redirected to stderr, so a
+  stray write from anywhere becomes log noise instead of a corrupt session.
 
 ### Added — speaker diarization (Phase 2a)
 

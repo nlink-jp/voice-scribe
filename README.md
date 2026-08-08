@@ -8,8 +8,8 @@ hands the same capability to an agent whose model cannot process audio.
 
 No API key. No audio leaves the machine.
 
-> **Pre-release.** Transcription and speaker diarization work end to end. The
-> MCP server is not implemented yet — `voice-scribe mcp` says so when run. See
+> **Pre-release.** Everything the design calls for works: transcription,
+> speaker diarization, and the MCP server. Not released yet — see
 > [CHANGELOG.md](CHANGELOG.md).
 
 ## Why
@@ -99,9 +99,27 @@ Japanese-specialised models alongside multilingual ones, with sizes and
 licenses. `voice-scribe doctor` reports the runtime linked into the binary and
 the ggml backends it was compiled with, read from the runtime itself.
 
-The MCP server is not implemented yet. The full design is in
-[docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md) (the Japanese edition
-is the source of truth).
+## As an MCP server
+
+`voice-scribe mcp` speaks the Model Context Protocol over stdio, giving an agent
+whose model cannot process audio a way to read recordings. Register it with your
+client as the command `voice-scribe mcp`; it takes no arguments.
+
+Four tools: `get_usage`, `transcribe`, `check_job`, `list_models`. Transcription
+is asynchronous — `transcribe` returns a job id that `check_job` polls. A short
+transcript comes back inline and a long one as a file path with an excerpt; the
+file is written either way.
+
+Recordings live in a workspace directory the agent prepares and names per call,
+and every path is confined to it by the kernel. `get_usage` returns the full
+manual; agents should call it once before their first transcription.
+
+Downloading models is deliberately **not** available over MCP — hundreds of
+megabytes is a decision for whoever is at the terminal. Use
+`voice-scribe models pull`.
+
+The full design is in [docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md)
+(the Japanese edition is the source of truth).
 
 ## Configuration
 

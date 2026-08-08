@@ -89,6 +89,7 @@ type installedView struct {
 	Quantization string `json:"quantization,omitempty"`
 	SizeBytes    int64  `json:"size_bytes,omitempty"`
 	License      string `json:"license,omitempty"`
+	Role         string `json:"role,omitempty"`
 	Path         string `json:"path"`
 }
 
@@ -100,6 +101,7 @@ type catalogView struct {
 	Quantization string `json:"quantization,omitempty"`
 	SizeBytes    int64  `json:"size_bytes"`
 	License      string `json:"license"`
+	Role         string `json:"role,omitempty"`
 	Installed    bool   `json:"installed"`
 }
 
@@ -157,22 +159,34 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// viewOf and catalogViewOf are the single definition of the JSON shapes. The
+// MCP list_models tool reuses them so the two surfaces cannot disagree about
+// what is installed.
+func viewOf(m store.Model) installedView {
+	return installedView{
+		Name: m.Name, Kind: string(m.Kind), Language: m.Language,
+		Quantization: m.Quantization, SizeBytes: m.SizeBytes, License: m.License,
+		Role: m.Role, Path: m.Path,
+	}
+}
+
+func catalogViewOf(e catalog.Entry, installed bool) catalogView {
+	return catalogView{
+		Name: e.Name, Kind: string(e.Kind), Description: e.Description, Language: e.Language,
+		Quantization: e.Quantization, SizeBytes: e.SizeBytes, License: e.License,
+		Role: string(e.Role), Installed: installed,
+	}
+}
+
 func emitListJSON(cmd *cobra.Command, installed []store.Model, showInstalled, showCatalog bool) error {
 	installedViews := make([]installedView, 0, len(installed))
 	for _, m := range installed {
-		installedViews = append(installedViews, installedView{
-			Name: m.Name, Kind: string(m.Kind), Language: m.Language,
-			Quantization: m.Quantization, SizeBytes: m.SizeBytes, License: m.License, Path: m.Path,
-		})
+		installedViews = append(installedViews, viewOf(m))
 	}
 
 	catalogViews := make([]catalogView, 0)
 	for _, e := range catalog.All() {
-		catalogViews = append(catalogViews, catalogView{
-			Name: e.Name, Kind: string(e.Kind), Description: e.Description, Language: e.Language,
-			Quantization: e.Quantization, SizeBytes: e.SizeBytes, License: e.License,
-			Installed: isInstalled(installed, e.Name),
-		})
+		catalogViews = append(catalogViews, catalogViewOf(e, isInstalled(installed, e.Name)))
 	}
 
 	enc := json.NewEncoder(cmd.OutOrStdout())

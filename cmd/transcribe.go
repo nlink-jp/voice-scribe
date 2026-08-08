@@ -169,7 +169,17 @@ func runTranscribe(cmd *cobra.Command, args []string) error {
 	elapsed := time.Since(started)
 	progress.done()
 
-	out := buildTranscript(source, model, decoded, result, translated, turns, elapsed)
+	out := assembleTranscript(assembly{
+		Source:       source,
+		Model:        model,
+		Decoded:      decoded,
+		Result:       result,
+		Translated:   translated,
+		Turns:        turns,
+		SpeakerHints: transcribeOpts.speakerHints,
+		Elapsed:      elapsed,
+		Translate:    transcribeOpts.translate,
+	})
 	if err := out.Validate(); err != nil {
 		return fmt.Errorf("%w — the audio may be silent, or in a language the model does not handle", err)
 	}
@@ -243,7 +253,26 @@ func withTranslate(p engine.Params) engine.Params {
 	return p
 }
 
-func buildTranscript(source string, model store.Model, decoded audio.Audio, result engine.Result, translated []transcript.Timed, turns []transcript.SpeakerTurn, elapsed time.Duration) transcript.Result {
+// assembly is everything needed to turn engine output into a transcript. It is
+// a struct rather than a long parameter list because both the CLI and the MCP
+// server build one, and neither should be reading the other's flag variables.
+type assembly struct {
+	Source       string
+	Model        store.Model
+	Decoded      audio.Audio
+	Result       engine.Result
+	Translated   []transcript.Timed
+	Turns        []transcript.SpeakerTurn
+	SpeakerHints []string
+	Elapsed      time.Duration
+	Translate    bool
+}
+
+func assembleTranscript(a assembly) transcript.Result {
+	source, model, decoded, result := a.Source, a.Model, a.Decoded, a.Result
+	translated, turns := a.Translated, a.Turns
+	elapsed := a.Elapsed
+
 	language := result.Language
 	if language == "" {
 		language = "und"
@@ -265,7 +294,7 @@ func buildTranscript(source string, model store.Model, decoded audio.Audio, resu
 		languages = append(languages, "en")
 	}
 	if len(turns) > 0 {
-		segments = transcript.AssignSpeakers(segments, turns, transcribeOpts.speakerHints)
+		segments = transcript.AssignSpeakers(segments, turns, a.SpeakerHints)
 	}
 
 	duration := decoded.Duration
@@ -282,9 +311,9 @@ func buildTranscript(source string, model store.Model, decoded audio.Audio, resu
 			Languages:       languages,
 			DroppedSegments: 0,
 			Engine:          "whisper.cpp",
-			Translated:      transcribeOpts.translate,
+			Translated:      a.Translate,
 			Diarized:        len(turns) > 0,
-			SpeakerHints:    transcribeOpts.speakerHints,
+			SpeakerHints:    a.SpeakerHints,
 			RealTimeFactor:  &rtf,
 		},
 		Segments: segments,
