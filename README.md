@@ -48,7 +48,7 @@ first build takes a few minutes. The result is a single self-contained binary in
 Install a model, then transcribe:
 
 ```bash
-voice-scribe models pull kotoba-whisper-v2.2
+voice-scribe models pull kotoba-whisper-v2.0
 ```
 
 ```bash
@@ -93,6 +93,9 @@ Diarization is two models working together — one finds speaker changes, the
 other decides which changes belong to the same person — and it needs voices that
 genuinely differ. When everyone comes back merged into one speaker, either pin
 the count with `--speakers` or lower `--speaker-threshold`.
+
+Every catalog model is pinned to a SHA256 and verified on download, so a
+substituted file is refused rather than parsed.
 
 `voice-scribe models list --catalog` shows what can be installed —
 Japanese-specialised models alongside multilingual ones, with sizes and

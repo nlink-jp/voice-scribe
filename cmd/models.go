@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/nlink-jp/voice-scribe/internal/catalog"
@@ -88,6 +89,7 @@ type installedView struct {
 	Language     string `json:"language,omitempty"`
 	Quantization string `json:"quantization,omitempty"`
 	SizeBytes    int64  `json:"size_bytes,omitempty"`
+	SHA256       string `json:"sha256,omitempty"`
 	License      string `json:"license,omitempty"`
 	Role         string `json:"role,omitempty"`
 	Path         string `json:"path"`
@@ -128,7 +130,7 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(out, "INSTALLED")
 		}
 		if len(installed) == 0 {
-			fmt.Fprintln(out, "no models installed (run `voice-scribe models pull kotoba-whisper-v2.2`)")
+			fmt.Fprintln(out, "no models installed (run `voice-scribe models pull kotoba-whisper-v2.0`)")
 		} else {
 			w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 			fmt.Fprintln(w, "NAME\tKIND\tLANG\tQUANT\tSIZE\tLICENSE")
@@ -165,8 +167,8 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 func viewOf(m store.Model) installedView {
 	return installedView{
 		Name: m.Name, Kind: string(m.Kind), Language: m.Language,
-		Quantization: m.Quantization, SizeBytes: m.SizeBytes, License: m.License,
-		Role: m.Role, Path: m.Path,
+		Quantization: m.Quantization, SizeBytes: m.SizeBytes, SHA256: m.SHA256,
+		License: m.License, Role: m.Role, Path: m.Path,
 	}
 }
 
@@ -214,17 +216,22 @@ func runModelsPull(cmd *cobra.Command, args []string) error {
 	}
 
 	dest := filepath.Join(rt.Store.ModelsDir(), entry.File)
-	if info, err := os.Stat(dest); err == nil && info.Size() == entry.SizeBytes {
-		// The weights are already on disk at the right size, which happens when
-		// a model was removed with --keep-file or is shared with another entry.
+	reusable, err := canReuse(dest, entry)
+	if err != nil {
+		return err
+	}
+	if reusable {
+		// The weights are already on disk and verified, which happens when a
+		// model was removed with --keep-file or is shared with another entry.
 		// Re-registering is instant; re-downloading half a gigabyte is not.
-		fmt.Fprintf(cmd.ErrOrStderr(), "%s already present, registering it\n", entry.File)
+		fmt.Fprintf(cmd.ErrOrStderr(), "%s already present and verified, registering it\n", entry.File)
 	} else {
 		fmt.Fprintf(cmd.ErrOrStderr(), "downloading %s (%s) from %s\n", entry.Name, humanBytes(entry.SizeBytes), entry.Repo)
 		progress := newProgressReporter(cmd.ErrOrStderr(), false)
 		progress.stage("fetching %s", entry.File)
 		err := download.Fetch(cmd.Context(), entry.URL(), dest, download.Options{
-			ExpectedSize: entry.SizeBytes,
+			ExpectedSize:   entry.SizeBytes,
+			ExpectedSHA256: entry.SHA256,
 			OnProgress: func(done, total int64) {
 				if total > 0 {
 					progress.percent(int(done * 100 / total))
@@ -242,6 +249,35 @@ func runModelsPull(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "installed %s (%s, %s)\n", entry.Name, entry.License, humanBytes(entry.SizeBytes))
 	return nil
+}
+
+// canReuse reports whether a file already at dest is the one the catalog
+// expects, so the download can be skipped.
+//
+// It hashes the file rather than trusting its size. Skipping the download is
+// exactly the path where a tampered file would otherwise be registered without
+// ever being checked — the one place a size-only test is worse than no test,
+// because it reads as verification.
+func canReuse(dest string, entry catalog.Entry) (bool, error) {
+	info, err := os.Stat(dest)
+	if err != nil || info.Size() != entry.SizeBytes {
+		return false, nil
+	}
+	if entry.SHA256 == "" {
+		return true, nil
+	}
+
+	sum, err := download.SHA256File(dest)
+	if err != nil {
+		return false, err
+	}
+	if !strings.EqualFold(sum, entry.SHA256) {
+		// Do not quietly re-download over it: a file that is the right size and
+		// the wrong content is worth telling the operator about.
+		return false, fmt.Errorf("%s is already at %s but its checksum does not match the catalog (got %s, expected %s); remove it and retry if you believe it is a stale copy",
+			entry.Name, dest, sum, entry.SHA256)
+	}
+	return true, nil
 }
 
 func runModelsImport(cmd *cobra.Command, args []string) error {

@@ -47,7 +47,7 @@ make build-engine
 モデルを導入してから文字起こしします:
 
 ```bash
-voice-scribe models pull kotoba-whisper-v2.2
+voice-scribe models pull kotoba-whisper-v2.0
 ```
 
 ```bash
@@ -92,6 +92,9 @@ voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint 田中,�
 話者分離は 2 つのモデルの協働です（一方が話者交代を見つけ、もう一方がどの交代が同一人物
 かを判断する）。声が実際に異なっている必要があり、**全員が 1 話者に統合されて返ってきた
 場合は、`--speakers` で人数を固定するか `--speaker-threshold` を下げてください**。
+
+カタログの全モデルは SHA256 で pin されており、ダウンロード時に検証されます。
+差し替えられたファイルは解析されず拒否されます。
 
 `voice-scribe models list --catalog` で導入可能なモデル（日本語特化・多言語、
 サイズとライセンス付き）を一覧できます。`voice-scribe doctor` はバイナリに

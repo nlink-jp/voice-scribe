@@ -197,3 +197,15 @@ measurement, not before.
 updating it from image-forge again, re-read the comments: "generation project",
 "init/mask images" and "rendered PNGs" all had to be rewritten, and a reader who
 meets them believes they are in an image-generation server.
+
+**Model downloads are hash-verified, and the reuse path is the one that matters.**
+`models pull` skips the download when the file is already present. That skip is
+exactly where a size-only check would read as verification while providing none,
+so it hashes too. See ADR-0004 — and note that adding a catalog entry without a
+SHA256 fails `catalog_test.go`.
+
+**whisper.cpp is deliberately pinned past its last release tag.** The commits
+between v1.9.2 and the pin include two memory-safety fixes on paths this tool
+exercises with untrusted input: a heap out-of-bounds read on very short audio,
+and a stack-buffer-overflow from a malformed model header. Moving "back to a
+release tag" for tidiness would drop both. Move forward when v1.9.3 ships.

@@ -59,8 +59,10 @@ type Model struct {
 	Language     string `json:"language,omitempty"`
 	Quantization string `json:"quantization,omitempty"`
 	SizeBytes    int64  `json:"size_bytes,omitempty"`
-	License      string `json:"license,omitempty"`
-	Source       string `json:"source,omitempty"`
+	// SHA256 is the hash the file was verified against when it was installed.
+	SHA256  string `json:"sha256,omitempty"`
+	License string `json:"license,omitempty"`
+	Source  string `json:"source,omitempty"`
 	// Role distinguishes the two models diarization needs — segmentation and
 	// embedding — which are the same Kind but not interchangeable. Empty for
 	// every other kind.
@@ -328,7 +330,7 @@ func (s *Store) Resolve(explicit, preferred, language string) (Model, error) {
 		}
 	}
 	if len(transcription) == 0 {
-		return Model{}, fmt.Errorf("no transcription model is installed (run `voice-scribe models pull kotoba-whisper-v2.2`)")
+		return Model{}, fmt.Errorf("no transcription model is installed (run `voice-scribe models pull kotoba-whisper-v2.0`)")
 	}
 
 	if preferred != "" {

@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **Model downloads are verified by SHA256, not only by size.** Size alone is not
+  integrity — anyone able to substitute the file can preserve its length — and
+  these files are parsed by a runtime that has already had a stack-buffer-overflow
+  reachable from a malformed tensor header, so a tampered model is a memory-safety
+  problem rather than a wrong transcript. Every catalog entry now pins a hash,
+  checked before the download is promoted to its final path **and** on the path
+  that reuses an already-present file, which is where a size-only check reads as
+  verification while providing none.
+
+### Changed
+
+- **Breaking: the default Japanese model is now `kotoba-whisper-v2.0`**, fetched
+  from `kotoba-tech`, the model's own authors. The previous default came from a
+  third-party mirror labelled "v2.2" that serves a **byte-identical file** — same
+  SHA256, same blob. Two names for one file is a menu that lies about the choice
+  on offer, and there is no reason to take the default model from an unaffiliated
+  re-upload. Update `default_model` in config if you set it explicitly.
+- `models list --json` reports each installed model's `sha256`.
+
+### Notes
+
+- The whisper.cpp submodule stays on a post-release commit rather than moving back
+  to tag v1.9.2, deliberately: the intervening commits include two memory-safety
+  fixes on paths this tool exercises directly — a heap out-of-bounds read on very
+  short audio, and the malformed-model stack overflow above. See ADR-0004.
+
 ## [0.1.0] - 2026-08-08
 
 First release. Local speech-to-text for macOS: a CLI that transcribes audio and

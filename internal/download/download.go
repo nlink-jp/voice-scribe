@@ -9,12 +9,15 @@ package download
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -35,6 +38,14 @@ type Options struct {
 	// truncated model loads with a confusing runtime error rather than an
 	// obvious one, so it is worth catching here.
 	ExpectedSize int64
+	// ExpectedSHA256, when non-empty, is checked against the finished file.
+	//
+	// Size alone is not integrity: an attacker who can substitute the file can
+	// trivially preserve its length. It matters here specifically because
+	// whisper parses these files, and upstream has already fixed a
+	// stack-buffer-overflow reachable from a malformed tensor header — a
+	// tampered model is a memory-safety problem, not just a wrong answer.
+	ExpectedSHA256 string
 }
 
 func (o Options) attempts() int {
@@ -53,6 +64,11 @@ func (o Options) client() *http.Client {
 
 // ErrIncomplete reports a download that finished at the wrong size.
 var ErrIncomplete = errors.New("downloaded file is incomplete")
+
+// ErrChecksumMismatch reports a download whose content does not match the
+// expected hash. Treat it as hostile until proven otherwise: it means the bytes
+// served are not the bytes the catalog was built against.
+var ErrChecksumMismatch = errors.New("downloaded file does not match its expected checksum")
 
 // Fetch downloads url to dest, resuming a partial file if one is present.
 //
@@ -100,6 +116,20 @@ func Fetch(ctx context.Context, url, dest string, opts Options) error {
 		}
 		if info.Size() != opts.ExpectedSize {
 			return fmt.Errorf("%w: got %d bytes, expected %d", ErrIncomplete, info.Size(), opts.ExpectedSize)
+		}
+	}
+
+	// The checksum is verified before the rename, so a file that fails it never
+	// exists at the destination path even briefly.
+	if opts.ExpectedSHA256 != "" {
+		sum, err := SHA256File(part)
+		if err != nil {
+			return err
+		}
+		if !strings.EqualFold(sum, opts.ExpectedSHA256) {
+			os.Remove(part)
+			return fmt.Errorf("%w: got %s, expected %s (the file served is not the one this build was pinned to; do not use it)",
+				ErrChecksumMismatch, sum, opts.ExpectedSHA256)
 		}
 	}
 
@@ -164,6 +194,23 @@ func fetchOnce(ctx context.Context, url, part string, opts Options) error {
 		return err
 	}
 	return f.Sync()
+}
+
+// SHA256File hashes a file in a streaming pass, so a gigabyte model does not
+// have to be held in memory to be checked. It is exported because the same
+// check has to happen on the path that reuses an already-present file.
+func SHA256File(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("hash %s: %w", path, err)
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 type progressWriter struct {

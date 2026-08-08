@@ -92,7 +92,7 @@ func TestExactlyOneDefaultPerLanguage(t *testing.T) {
 }
 
 func TestLookup(t *testing.T) {
-	if _, ok := Lookup("kotoba-whisper-v2.2"); !ok {
+	if _, ok := Lookup("kotoba-whisper-v2.0"); !ok {
 		t.Error("the documented default model is not in the catalog")
 	}
 	if _, ok := Lookup("silero-vad"); !ok {
@@ -107,7 +107,7 @@ func TestLookup(t *testing.T) {
 // what a model is without re-consulting the catalog, which matters for models
 // installed from a catalog entry that later changes.
 func TestModelCarriesCatalogFactsIntoTheRegistry(t *testing.T) {
-	e, _ := Lookup("kotoba-whisper-v2.2")
+	e, _ := Lookup("kotoba-whisper-v2.0")
 	m := e.Model("/models/k.bin")
 
 	if m.Name != e.Name || m.Kind != e.Kind || m.Language != e.Language {
@@ -118,5 +118,46 @@ func TestModelCarriesCatalogFactsIntoTheRegistry(t *testing.T) {
 	}
 	if !strings.Contains(m.Source, e.Repo) {
 		t.Errorf("Source = %q, want it to record the upstream repo", m.Source)
+	}
+}
+
+// TestEveryEntryPinsAHash is the supply-chain gate. An entry without one is
+// installed on size alone, which anyone able to substitute the file can
+// preserve — and these files are parsed by a runtime that has already had a
+// stack-buffer-overflow reachable from a malformed header.
+func TestEveryEntryPinsAHash(t *testing.T) {
+	for _, e := range All() {
+		if len(e.SHA256) != 64 {
+			t.Errorf("%s: SHA256 = %q, want a 64-character hex digest", e.Name, e.SHA256)
+			continue
+		}
+		if strings.Trim(e.SHA256, "0123456789abcdef") != "" {
+			t.Errorf("%s: SHA256 %q is not lowercase hex", e.Name, e.SHA256)
+		}
+	}
+}
+
+// TestNoTwoEntriesShipTheSameBytes: two names for one file is a menu that lies
+// about the choice on offer. It was a real defect — a third-party mirror
+// labelled "v2.2" served a file byte-identical to the authors' "v2.0".
+func TestNoTwoEntriesShipTheSameBytes(t *testing.T) {
+	seen := map[string]string{}
+	for _, e := range All() {
+		if prior, dup := seen[e.SHA256]; dup {
+			t.Errorf("%s and %s are the same file (%s); offer one of them", prior, e.Name, e.SHA256)
+		}
+		seen[e.SHA256] = e.Name
+	}
+}
+
+// TestTheDefaultJapaneseModelComesFromItsAuthors: for the model installed by
+// default, prefer the upstream author's repository over any re-upload.
+func TestTheDefaultJapaneseModelComesFromItsAuthors(t *testing.T) {
+	e, ok := DefaultFor("ja")
+	if !ok {
+		t.Fatal("no default Japanese model")
+	}
+	if !strings.HasPrefix(e.Repo, "kotoba-tech/") {
+		t.Errorf("the default Japanese model comes from %q, not the model's authors", e.Repo)
 	}
 }

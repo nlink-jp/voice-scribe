@@ -56,7 +56,7 @@ type MCP struct {
 // Default returns the configuration used when nothing is set anywhere.
 func Default() Config {
 	return Config{
-		DefaultModel: "kotoba-whisper-v2.2",
+		DefaultModel: "kotoba-whisper-v2.0",
 		Transcribe: Transcribe{
 			Format:  "json",
 			VAD:     false,

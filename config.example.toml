@@ -9,7 +9,7 @@
 # Copy this file to one of the paths above and edit.
 
 # Model used when `--model` is not given. Japanese-optimised by default.
-default_model = "kotoba-whisper-v2.2"
+default_model = "kotoba-whisper-v2.0"
 
 # Where downloaded models live. Whisper weights run to gigabytes, so point this
 # at a larger disk if the home volume is tight. `~` is expanded.

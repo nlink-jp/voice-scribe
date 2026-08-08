@@ -33,7 +33,15 @@ type Entry struct {
 	Language     string
 	Quantization string
 	SizeBytes    int64
-	License      string
+	// SHA256 pins the exact bytes this catalog entry was built against.
+	//
+	// Size alone is not integrity — anyone who can substitute the file can keep
+	// its length. It matters concretely here: whisper parses these files, and
+	// upstream has already fixed a stack-buffer-overflow reachable from a
+	// malformed tensor header, so a tampered model is a memory-safety problem
+	// rather than merely a wrong transcript.
+	SHA256  string
+	License string
 	// Default marks the entry suggested for its language when nothing is set.
 	Default bool
 	// Role separates the two halves of a diarization pair. It is empty for
@@ -63,6 +71,7 @@ func (e Entry) Model(path string) store.Model {
 		Language:     e.Language,
 		Quantization: e.Quantization,
 		SizeBytes:    e.SizeBytes,
+		SHA256:       e.SHA256,
 		License:      e.License,
 		Source:       e.Repo + "/" + e.File,
 		Role:         string(e.Role),
@@ -91,27 +100,22 @@ func DiarizationPair() (segmentation, embedding Entry, ok bool) {
 // not show up in practice, and the difference between 537 MB and 1.5 GB does.
 var entries = []Entry{
 	{
-		Name:         "kotoba-whisper-v2.2",
-		Kind:         store.KindTranscription,
-		Description:  "Japanese-specialised distil-whisper. ~6x faster than large-v3 at comparable error rate.",
-		Repo:         "kenrouse/kotoba-whisper-v2.2-ggml",
-		File:         "kotoba-whisper-v2.2-ggml-q5_0.bin",
-		Language:     "ja",
-		Quantization: "q5_0",
-		SizeBytes:    537819875,
-		License:      "apache-2.0",
-		Default:      true,
-	},
-	{
+		// Fetched from kotoba-tech, the model's own authors. A third-party
+		// mirror labelled "v2.2" serves a byte-identical file (same SHA256,
+		// same blob) -- so it is the same weights under a different version
+		// number, and there is no reason to take the default model from an
+		// unaffiliated re-upload.
 		Name:         "kotoba-whisper-v2.0",
 		Kind:         store.KindTranscription,
-		Description:  "Japanese-specialised distil-whisper, published by the model's own authors.",
+		Description:  "Japanese-specialised distil-whisper. ~6x faster than large-v3 at comparable error rate.",
 		Repo:         "kotoba-tech/kotoba-whisper-v2.0-ggml",
 		File:         "ggml-kotoba-whisper-v2.0-q5_0.bin",
 		Language:     "ja",
 		Quantization: "q5_0",
 		SizeBytes:    537819875,
+		SHA256:       "4a3b92192b5d3578ff854a5876213e2e27af0c2d357492c2d14271e82c303658",
 		License:      "apache-2.0",
+		Default:      true,
 	},
 	{
 		Name:         "large-v3-turbo",
@@ -121,6 +125,7 @@ var entries = []Entry{
 		File:         "ggml-large-v3-turbo-q5_0.bin",
 		Quantization: "q5_0",
 		SizeBytes:    574041195,
+		SHA256:       "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
 		License:      "mit",
 		Default:      true,
 	},
@@ -132,6 +137,7 @@ var entries = []Entry{
 		File:         "ggml-large-v3-q5_0.bin",
 		Quantization: "q5_0",
 		SizeBytes:    1081140203,
+		SHA256:       "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1",
 		License:      "mit",
 	},
 	{
@@ -142,6 +148,7 @@ var entries = []Entry{
 		File:         "ggml-base-q5_1.bin",
 		Quantization: "q5_1",
 		SizeBytes:    59707625,
+		SHA256:       "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
 		License:      "mit",
 	},
 	{
@@ -155,6 +162,7 @@ var entries = []Entry{
 		Repo:        "csukuangfj/sherpa-onnx-pyannote-segmentation-3-0",
 		File:        "model.onnx",
 		SizeBytes:   5992913,
+		SHA256:      "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
 		// The ONNX export ships pyannote's own MIT licence, (c) 2022 CNRS. The
 		// upstream Hugging Face repo is gated; this mirror is not.
 		License: "mit",
@@ -168,6 +176,7 @@ var entries = []Entry{
 		Repo:        "csukuangfj/speaker-embedding-models",
 		File:        "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
 		SizeBytes:   28281164,
+		SHA256:      "aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2",
 		License:     "apache-2.0",
 		Default:     true,
 		Role:        RoleEmbedding,
@@ -179,6 +188,7 @@ var entries = []Entry{
 		Repo:        "ggml-org/whisper-vad",
 		File:        "ggml-silero-v5.1.2.bin",
 		SizeBytes:   885098,
+		SHA256:      "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
 		License:     "mit",
 	},
 }
