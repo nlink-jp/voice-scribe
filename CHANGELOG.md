@@ -5,28 +5,6 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- **Grammar-constrained decoding will not be added, and the note recommending it
-  was wrong.** After `--prompt` turned out not to fix misheard proper nouns,
-  AGENTS.md pointed at whisper's `grammar_rules` as "the mechanism" for
-  constraining vocabulary. Measured on the same recording: a grammar permitting
-  arbitrary text plus the wanted name gives output *byte-identical* to no grammar
-  at all — the penalty only subtracts from tokens the grammar rejects, and a
-  permissive grammar rejects nothing. A grammar tight enough to bite collapsed 50
-  seconds of dialogue into two sentences and still never produced the name, which
-  was in its vocabulary. ADR-0005 records the mechanism, the measurements, and
-  the decision to leave proper nouns to whoever has the context downstream.
-- **Source separation will not be added either.** sherpa-onnx is already linked
-  and already exposes it, and it is cheap (RTF 0.038). Measured on the same
-  recording: separating vocals recovered a line the original lost to a repetition
-  loop, left the misheard surname unchanged, and took diarization from 18
-  speakers to 14 on five minutes — still nowhere near the real cast, still
-  warning. Neither Spleeter's nor UVR's model *weights* state a licence, so
-  neither can go in the catalog. ADR-0006.
-
 ## [0.1.3] - 2026-08-09
 
 Everything here came out of running one real 39-minute drama recording — music
