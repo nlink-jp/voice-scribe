@@ -5,7 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-08-12
+
+The Japanese default was picked by reasoning and never measured. Measuring it
+changed the answer, and the model that won brings a failure of its own — so the
+warning for that failure ships in the same release.
 
 ### Changed
 
