@@ -28,6 +28,17 @@ make all
 | `eval` | 6 モデル × 2 コーパスの日本語 CER | モデル約 5 GB の DL |
 | `caps` | capability matrix（タイムスタンプ / ライセンス / 音声長上限） | 数秒 |
 
+`eval/` には voice-scribe 本体を回すためのスクリプトも入っている（ADR-0008）:
+
+| スクリプト | 用途 |
+|---|---|
+| `run-vs.sh` | transcribe-cli ではなく **voice-scribe 本体**で CER を測る |
+| `longform-stats.py` | 参照テキストの無い長時間音声の**構造の健全性**（被覆・反復・脱落） |
+| `loop-detail.py` | 反復ループが何秒・何文字を食ったか |
+| `speaker-stats.py` | 話者数と発話時間の偏り（過分割の検出） |
+
+後ろの 3 本は**本文を一切出力しない** — 私物の録音に対して回すため。
+
 必要なもの: cmake、uv、ffmpeg、Xcode の Metal ツールチェイン。
 
 評価コーパスは kotoba-whisper の model card が使っているものと同じ 2 本
