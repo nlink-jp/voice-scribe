@@ -54,36 +54,76 @@ type speaker struct {
 }
 
 type result struct {
-	Model       string    `json:"model"`
-	Arch        string    `json:"arch"`
-	Backend     string    `json:"backend"`
-	Diarization bool      `json:"supports_diarization"`
-	Streaming   bool      `json:"supports_streaming"`
-	Languages   []string  `json:"languages"`
-	Language    string    `json:"language,omitempty"`
-	Text        string    `json:"text"`
-	Speakers    []speaker `json:"speakers"`
-	LoadMS      float64   `json:"load_ms"`
-	RunMS       float64   `json:"run_ms"`
+	Model string `json:"model"`
+	Arch  string `json:"arch"`
+
+	// The capability block is the point of the -caps mode: whether a model
+	// can stand in for kotoba-whisper inside voice-scribe is decided here,
+	// not by its CER. An engine that cannot time-stamp a segment cannot feed
+	// the gem-transcribe-compatible envelope, however accurate it is.
+	License     string   `json:"license"`
+	Timestamps  string   `json:"max_timestamps"`
+	MaxAudioSec float64  `json:"max_audio_sec"` // 0 = chunked internally / unbounded
+	Diarization bool     `json:"supports_diarization"`
+	Streaming   bool     `json:"supports_streaming"`
+	Translate   bool     `json:"supports_translate"`
+	LangDetect  bool     `json:"supports_language_detect"`
+	NLanguages  int      `json:"n_languages"`
+	Japanese    bool     `json:"advertises_ja"`
+	Backend     string   `json:"backend,omitempty"`
+	Languages   []string `json:"languages,omitempty"`
+
+	Language string    `json:"language,omitempty"`
+	Text     string    `json:"text,omitempty"`
+	Speakers []speaker `json:"speakers,omitempty"`
+	LoadMS   float64   `json:"load_ms"`
+	RunMS    float64   `json:"run_ms,omitempty"`
 }
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Fprintf(os.Stderr, "usage: %s MODEL.gguf AUDIO.wav\n", os.Args[0])
+	args := os.Args[1:]
+	capsOnly := len(args) > 0 && args[0] == "-caps"
+	if capsOnly {
+		args = args[1:]
+	}
+	if (capsOnly && len(args) != 1) || (!capsOnly && len(args) != 2) {
+		fmt.Fprintf(os.Stderr, "usage: %s MODEL.gguf AUDIO.wav\n       %s -caps MODEL.gguf\n",
+			os.Args[0], os.Args[0])
 		os.Exit(2)
 	}
-	if err := run(os.Args[1], os.Args[2]); err != nil {
+	wav := ""
+	if !capsOnly {
+		wav = args[1]
+	}
+	if err := run(args[0], wav); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 }
 
+func timestampKind(k C.transcribe_timestamp_kind) string {
+	switch k {
+	case C.TRANSCRIBE_TIMESTAMPS_NONE:
+		return "none"
+	case C.TRANSCRIBE_TIMESTAMPS_SEGMENT:
+		return "segment"
+	case C.TRANSCRIBE_TIMESTAMPS_WORD:
+		return "word"
+	case C.TRANSCRIBE_TIMESTAMPS_TOKEN:
+		return "token"
+	}
+	return "auto"
+}
+
 func run(modelPath, wavPath string) error {
 	C.gospike_mute()
 
-	pcm, err := readWAV(wavPath)
-	if err != nil {
-		return err
+	var pcm []float32
+	if wavPath != "" {
+		var err error
+		if pcm, err = readWAV(wavPath); err != nil {
+			return err
+		}
 	}
 
 	if st := C.transcribe_init_backends_default(); st != C.TRANSCRIBE_OK {
@@ -125,8 +165,22 @@ func run(modelPath, wavPath string) error {
 	if st := C.transcribe_model_get_capabilities(model, &caps); st != C.TRANSCRIBE_OK {
 		return statusErr("get_capabilities", st)
 	}
-	out.Languages = goStringSlice(caps.languages, int(caps.n_languages))
+	langs := goStringSlice(caps.languages, int(caps.n_languages))
+	out.NLanguages = len(langs)
+	out.Japanese = contains(langs, "ja") || contains(langs, "ja-JP")
 	out.Streaming = bool(caps.supports_streaming)
+	out.Translate = bool(caps.supports_translate)
+	out.LangDetect = bool(caps.supports_language_detect)
+	out.Timestamps = timestampKind(caps.max_timestamp_kind)
+	out.MaxAudioSec = float64(caps.max_audio_ms) / 1000
+	out.License = C.GoString(C.transcribe_model_meta_val_str(model, C.CString("general.license")))
+
+	if wavPath == "" { // -caps: report and stop, no inference
+		out.Languages = langs
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(out)
+	}
 
 	var rp C.struct_transcribe_run_params
 	C.transcribe_run_params_init(&rp)
@@ -134,7 +188,7 @@ func run(modelPath, wavPath string) error {
 	// advertises exactly one language ("en") and rejects every hint with
 	// UNSUPPORTED_LANGUAGE, so `n_languages > 0` is not the question --
 	// "is my language in the list" is.
-	if wantLang := "ja"; contains(out.Languages, wantLang) {
+	if wantLang := "ja"; contains(langs, wantLang) {
 		lang := C.CString(wantLang)
 		defer C.free(unsafe.Pointer(lang))
 		rp.language = lang

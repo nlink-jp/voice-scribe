@@ -7,3 +7,7 @@
 /spike/transcribe-cpp/fixture/
 /spike/transcribe-cpp/models/
 /spike/transcribe-cpp/tcspike
+/spike/transcribe-cpp/eval/data/
+/spike/transcribe-cpp/eval/cv8/
+/spike/transcribe-cpp/eval/jsut/
+/spike/transcribe-cpp/eval/hyp/
