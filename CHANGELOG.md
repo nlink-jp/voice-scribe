@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The default model for Japanese is now `large-v3-turbo`**, replacing
+  `kotoba-whisper-v2.0`. The old default was chosen on the reasoning that a
+  Japanese-specialised model must be better at Japanese; measuring it says
+  otherwise. Character error rate on this machine, q5_0, 100 utterances per
+  corpus: Common Voice 8 **9.57%** vs 9.41%, JSUT basic5000 **6.29%** vs 7.15%,
+  ReazonSpeech **7.82%** vs 9.08% — turbo ahead on two, behind on one by a
+  margin too small to call, and ahead on the corpus kotoba-whisper was trained
+  on. `kotoba-whisper-v2.0` stays in the catalog and `--model` still reaches it.
+  A `default_model` already written to a config file is left alone. See
+  [ADR-0008](docs/adr/0008-japanese-default-model.md).
+
+### Added
+
+- **A warning when the decoder falls into a repetition loop.** Whisper repeats
+  one line over and over when it loses the thread; the audio under the loop is
+  missing from the transcript rather than mistranscribed, and nothing else about
+  the result looks wrong. The warning names the number of loops, the repeated
+  segments, the seconds swallowed, and where the longest run starts. Measured on
+  a 39-minute recording with continuous music, three runs per model: the new
+  default produced runs of 19, 45 and 48, while `kotoba-whisper-v2.0` on the
+  same audio never exceeded 3. (Three runs, because the same input does not
+  produce the same transcript twice — see the ADR.)
+  The MCP result carries it in `warning` alongside any diarization warning; the
+  CLI prints one line per diagnosis to stderr.
+
 ## [0.1.3] - 2026-08-09
 
 Everything here came out of running one real 39-minute drama recording — music

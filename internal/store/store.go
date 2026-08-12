@@ -330,7 +330,7 @@ func (s *Store) Resolve(explicit, preferred, language string) (Model, error) {
 		}
 	}
 	if len(transcription) == 0 {
-		return Model{}, fmt.Errorf("no transcription model is installed (run `voice-scribe models pull kotoba-whisper-v2.0`)")
+		return Model{}, fmt.Errorf("no transcription model is installed (run `voice-scribe models pull large-v3-turbo`)")
 	}
 
 	if preferred != "" {

@@ -46,28 +46,46 @@ func TestNamesAreUnique(t *testing.T) {
 	}
 }
 
-// TestDefaultForPicksASpecialistThenFallsBack is the behaviour that makes
-// `models pull` work without the user knowing which model suits their language.
+// TestDefaultForPicksASpecialistThenFallsBack exercises the mechanism against a
+// fixture rather than the real catalog, because no language marks a specialist
+// today (ADR-0008) and an untested branch is one that stops working quietly.
 func TestDefaultForPicksASpecialistThenFallsBack(t *testing.T) {
+	fixture := []Entry{
+		{Name: "generalist", Kind: store.KindTranscription, Default: true},
+		{Name: "xx-specialist", Kind: store.KindTranscription, Language: "xx", Default: true},
+		{Name: "yy-also-installed", Kind: store.KindTranscription, Language: "yy"},
+	}
+
+	for _, tc := range []struct{ language, want string }{
+		{"xx", "xx-specialist"}, // a marked specialist wins
+		{"yy", "generalist"},    // present but unmarked: not suggested
+		{"zz", "generalist"},    // no entry at all: fall back
+		{"", "generalist"},      // language unspecified
+	} {
+		if got, ok := defaultFor(fixture, tc.language); !ok || got.Name != tc.want {
+			t.Errorf("defaultFor(%q) = %q, want %q", tc.language, got.Name, tc.want)
+		}
+	}
+
+	if _, ok := defaultFor(nil, "xx"); ok {
+		t.Error("invented a default out of an empty catalog")
+	}
+}
+
+// TestTheSuggestedJapaneseModelIsTheMeasuredOne pins ADR-0008. The Japanese
+// suggestion was a Japanese-specialised model on the reasoning that a
+// specialist must be better; measuring said otherwise, and this test is what
+// stops the reasoning from quietly coming back.
+func TestTheSuggestedJapaneseModelIsTheMeasuredOne(t *testing.T) {
 	ja, ok := DefaultFor("ja")
 	if !ok {
 		t.Fatal("no default for Japanese")
 	}
-	if ja.Language != "ja" {
-		t.Errorf("default for ja is %q (language %q), want a Japanese specialist", ja.Name, ja.Language)
+	if ja.Name != "large-v3-turbo" {
+		t.Errorf("default for ja is %q, want large-v3-turbo (ADR-0008)", ja.Name)
 	}
-
-	fr, ok := DefaultFor("fr")
-	if !ok {
-		t.Fatal("no default for French")
-	}
-	if fr.Language != "" {
-		t.Errorf("default for fr is %q (language %q), want a multilingual model", fr.Name, fr.Language)
-	}
-
-	none, ok := DefaultFor("")
-	if !ok || none.Language != "" {
-		t.Errorf("default for an unspecified language = %q, want a multilingual model", none.Name)
+	if _, ok := Lookup("kotoba-whisper-v2.0"); !ok {
+		t.Error("kotoba-whisper left the catalog; it is no longer suggested, but --model must still reach it")
 	}
 }
 
@@ -92,7 +110,7 @@ func TestExactlyOneDefaultPerLanguage(t *testing.T) {
 }
 
 func TestLookup(t *testing.T) {
-	if _, ok := Lookup("kotoba-whisper-v2.0"); !ok {
+	if _, ok := Lookup("large-v3-turbo"); !ok {
 		t.Error("the documented default model is not in the catalog")
 	}
 	if _, ok := Lookup("silero-vad"); !ok {
@@ -150,14 +168,15 @@ func TestNoTwoEntriesShipTheSameBytes(t *testing.T) {
 	}
 }
 
-// TestTheDefaultJapaneseModelComesFromItsAuthors: for the model installed by
-// default, prefer the upstream author's repository over any re-upload.
-func TestTheDefaultJapaneseModelComesFromItsAuthors(t *testing.T) {
-	e, ok := DefaultFor("ja")
+// TestKotobaWhisperComesFromItsAuthors: prefer the upstream author's repository
+// over any re-upload (ADR-0004). This model is no longer the Japanese default,
+// but it is still shipped in the catalog, so its provenance still matters.
+func TestKotobaWhisperComesFromItsAuthors(t *testing.T) {
+	e, ok := Lookup("kotoba-whisper-v2.0")
 	if !ok {
-		t.Fatal("no default Japanese model")
+		t.Fatal("kotoba-whisper-v2.0 is not in the catalog")
 	}
 	if !strings.HasPrefix(e.Repo, "kotoba-tech/") {
-		t.Errorf("the default Japanese model comes from %q, not the model's authors", e.Repo)
+		t.Errorf("kotoba-whisper comes from %q, not the model's authors", e.Repo)
 	}
 }

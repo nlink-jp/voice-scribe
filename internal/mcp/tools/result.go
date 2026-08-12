@@ -83,9 +83,14 @@ func resultFor(rel, abs, format, content string, threshold int, r transcript.Res
 		out.Speakers = nil
 	}
 
-	if d, flagged := transcript.Diagnose(r); flagged {
-		out.Warning = fmt.Sprintf("%d speakers across %d segments (%d speaking once). %s",
-			d.Speakers, d.Segments, d.Singletons, d.Advice)
+	// One field carries every diagnosis: an agent that reads `warning` at all
+	// reads all of it, and a second field would be a second thing to forget.
+	if ds := transcript.Diagnose(r); len(ds) > 0 {
+		parts := make([]string, 0, len(ds))
+		for _, d := range ds {
+			parts = append(parts, d.String())
+		}
+		out.Warning = strings.Join(parts, " ")
 	}
 
 	if len(content) <= threshold {

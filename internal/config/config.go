@@ -56,7 +56,12 @@ type MCP struct {
 // Default returns the configuration used when nothing is set anywhere.
 func Default() Config {
 	return Config{
-		DefaultModel: "kotoba-whisper-v2.0",
+		// Measured, not assumed: large-v3-turbo has the lower character error
+		// rate on two of the three Japanese corpora and loses to
+		// kotoba-whisper on neither by a margin worth the name (ADR-0008).
+		// Changing this changes only the compiled-in fallback -- a
+		// default_model already written to a config file is left alone.
+		DefaultModel: "large-v3-turbo",
 		Transcribe: Transcribe{
 			Format:  "json",
 			VAD:     false,

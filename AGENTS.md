@@ -236,6 +236,20 @@ no error, no failed validation. `transcript.Diagnose` exists for exactly that
 shape of failure. Its thresholds are deliberately loose — a warning that fires
 on good results teaches people to ignore it.
 
+It returns a slice, and there are two checks: over-split speakers and decoder
+repetition loops. A loop is the same shape of failure one layer down — the audio
+under it is absent from the transcript, not mistranscribed, and the segments
+around it look perfectly ordinary. Add the third check by writing a
+`diagnose*` function and appending it in `Diagnose`; both call sites (the CLI
+and the MCP result) already iterate.
+
+**Model defaults are measured, not reasoned about.** The Japanese default was
+`kotoba-whisper-v2.0` because a Japanese-specialised model must surely beat a
+multilingual one. It does not (ADR-0008). The harness that settled it is in
+`spike/transcribe-cpp/eval/` on the `spike/transcribe-cpp` branch; it scores
+against the corpora kotoba-whisper's own model card uses, so its numbers can be
+checked against published ones instead of trusted.
+
 **Removing the music does not fix the over-splitting, and the separation models
 cannot be shipped anyway.** sherpa-onnx — already linked — exposes source
 separation (Spleeter, UVR) and denoising (GTCRN, DPDFNet), so it looks like a

@@ -8,8 +8,9 @@
 # Environment variables override the values here (e.g. $VOICE_SCRIBE_MODELS_DIR).
 # Copy this file to one of the paths above and edit.
 
-# Model used when `--model` is not given. Japanese-optimised by default.
-default_model = "kotoba-whisper-v2.0"
+# Model used when `--model` is not given. Multilingual, and the model with the
+# lowest measured error on Japanese (see docs/adr/0008).
+default_model = "large-v3-turbo"
 
 # Where downloaded models live. Whisper weights run to gigabytes, so point this
 # at a larger disk if the home volume is tight. `~` is expanded.

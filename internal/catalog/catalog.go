@@ -106,9 +106,13 @@ var entries = []Entry{
 		// same blob) -- so it is the same weights under a different version
 		// number, and there is no reason to take the default model from an
 		// unaffiliated re-upload.
-		Name:         "kotoba-whisper-v2.0",
-		Kind:         store.KindTranscription,
-		Description:  "Japanese-specialised distil-whisper. ~6x faster than large-v3 at comparable error rate.",
+		Name: "kotoba-whisper-v2.0",
+		Kind: store.KindTranscription,
+		// Was the Japanese default until ADR-0008 measured it against
+		// large-v3-turbo on this machine: ahead on Common Voice by a margin too
+		// small to call, behind on JSUT and on ReazonSpeech -- the corpus it was
+		// trained on. Kept in the catalog, no longer suggested.
+		Description:  "Japanese-specialised distil-whisper. Ahead of large-v3-turbo on Common Voice, behind it on JSUT and ReazonSpeech.",
 		Repo:         "kotoba-tech/kotoba-whisper-v2.0-ggml",
 		File:         "ggml-kotoba-whisper-v2.0-q5_0.bin",
 		Language:     "ja",
@@ -116,12 +120,11 @@ var entries = []Entry{
 		SizeBytes:    537819875,
 		SHA256:       "4a3b92192b5d3578ff854a5876213e2e27af0c2d357492c2d14271e82c303658",
 		License:      "apache-2.0",
-		Default:      true,
 	},
 	{
 		Name:         "large-v3-turbo",
 		Kind:         store.KindTranscription,
-		Description:  "Multilingual. Near large-v3 accuracy at roughly half the inference time.",
+		Description:  "Multilingual, and the suggested model for Japanese. Near large-v3 accuracy at roughly half the inference time.",
 		Repo:         "ggerganov/whisper.cpp",
 		File:         "ggml-large-v3-turbo-q5_0.bin",
 		Quantization: "q5_0",
@@ -243,8 +246,15 @@ func Lookup(name string) (Entry, bool) {
 }
 
 // DefaultFor returns the suggested transcription model for a language, or the
-// suggested multilingual one when the language has no specialist.
-func DefaultFor(language string) (Entry, bool) {
+// suggested multilingual one when the language has no marked specialist.
+//
+// No language marks a specialist today: Japanese did until ADR-0008 measured
+// the specialist against the multilingual model and the specialist lost. The
+// branch stays because the question is per-language and per-model, and the next
+// language may answer it the other way.
+func DefaultFor(language string) (Entry, bool) { return defaultFor(entries, language) }
+
+func defaultFor(entries []Entry, language string) (Entry, bool) {
 	for _, e := range entries {
 		if e.Kind == store.KindTranscription && e.Default && e.Language == language {
 			return e, true

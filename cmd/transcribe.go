@@ -184,12 +184,11 @@ func runTranscribe(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%w — the audio may be silent, or in a language the model does not handle", err)
 	}
 
-	// A diarization that over-split produces a perfectly well-formed transcript,
-	// so nothing else in this path would say a word about it.
-	if d, flagged := transcript.Diagnose(out); flagged {
-		fmt.Fprintf(cmd.ErrOrStderr(),
-			"warning: %d speakers across %d segments (%d of them speaking once). %s\n",
-			d.Speakers, d.Segments, d.Singletons, d.Advice)
+	// An over-split diarization and a decoder repetition loop both produce a
+	// perfectly well-formed transcript, so nothing else in this path would say
+	// a word about either.
+	for _, d := range transcript.Diagnose(out) {
+		fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s\n", d)
 	}
 
 	files, err := transcript.Render(out, format)

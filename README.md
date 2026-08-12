@@ -44,7 +44,7 @@ first build takes a few minutes. The result is a single self-contained binary in
 Install a model, then transcribe:
 
 ```bash
-voice-scribe models pull kotoba-whisper-v2.0
+voice-scribe models pull large-v3-turbo
 ```
 
 ```bash
@@ -96,6 +96,34 @@ threshold above its 0.5 default. Continuous background music is the usual cause
 of the second: the embedding model sees music mixed with voice, so one person's
 embeddings scatter. voice-scribe prints a warning when the count looks like
 over-splitting, because the transcript is well-formed either way.
+
+### Choosing a model
+
+`large-v3-turbo` is the default, for Japanese as well as everything else. It was
+picked by measurement rather than by reputation: on this machine it has the
+lower character error rate on JSUT and on ReazonSpeech, and loses to
+`kotoba-whisper-v2.0` on Common Voice by a margin too small to call. The
+comparison, including what was measured on a 39-minute recording with
+continuous background music, is in
+[docs/adr/0008-japanese-default-model.md](docs/adr/0008-japanese-default-model.md).
+
+`kotoba-whisper-v2.0` is still in the catalog; `--model` reaches it. A
+`default_model` already written to your config file is not touched by the change
+of default.
+
+### When the transcript is well-formed and wrong
+
+Whisper repeats one line over and over when it loses the thread — usually over
+music or noise rather than over speech. The audio under a repetition loop is not
+mistranscribed, it is **missing**, and nothing about the result looks unusual:
+the segments are there, the timestamps are plausible, the JSON validates.
+voice-scribe prints a warning naming the run, the seconds it swallowed, and
+where in the audio it starts.
+
+`--vad` is the usual remedy, but it is not free: on a recording with continuous
+background music it removed every loop from both models tested and also removed
+about a third of the transcript, because the VAD gates speech that sits on top
+of music. Reach for it on a source you know to be noisy, not by default.
 
 Calibrate on a slice rather than the whole file — `--offset` and `--duration`
 apply to diarization too:
