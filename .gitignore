@@ -1,3 +1,9 @@
 /dist/
 .claude/
 .DS_Store
+
+# ADR-0007 の使い捨てハーネスが生成するもの（clone / ビルド生成物 / 音声 / モデル）
+/spike/transcribe-cpp/third_party/
+/spike/transcribe-cpp/fixture/
+/spike/transcribe-cpp/models/
+/spike/transcribe-cpp/tcspike

@@ -1,0 +1,16 @@
+Teach convert-whisper.py the kotoba-whisper-v2.0 slug.
+
+The converter reads the checkpoint correctly (32 encoder / 2 decoder layers,
+128 mel bins, vocab 51866) and fails only on the display-name allowlist, which
+already carries one community fine-tune (breeze-asr-25). Upstreamable as-is.
+
+--- a/scripts/convert-whisper.py
++++ b/scripts/convert-whisper.py
+@@ -466,6 +466,7 @@ VARIANT_DISPLAY_NAMES: dict[str, str] = {
+     "whisper-large-v3":       "Whisper Large v3",
+     "whisper-large-v3-turbo": "Whisper Large v3 Turbo",
+     "breeze-asr-25":          "Breeze-ASR-25",
++    "kotoba-whisper-v2.0":    "Kotoba-Whisper v2.0",
+ }
+
+
