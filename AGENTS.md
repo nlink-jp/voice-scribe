@@ -246,7 +246,7 @@ and the MCP result) already iterate.
 **Model defaults are measured, not reasoned about.** The Japanese default was
 `kotoba-whisper-v2.0` because a Japanese-specialised model must surely beat a
 multilingual one. It does not (ADR-0008). The harness that settled it is in
-`spike/transcribe-cpp/eval/` on the `spike/transcribe-cpp` branch; it scores
+`spike/transcribe-cpp/eval/`; it scores
 against the corpora kotoba-whisper's own model card uses, so its numbers can be
 checked against published ones instead of trusted.
 
