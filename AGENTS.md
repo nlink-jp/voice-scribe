@@ -38,6 +38,7 @@ make test           # test suite (equivalent to `go test ./...`)
 make test-engine    # same suite against the real runtimes (both tags)
 make build-all      # build-engine + Developer ID signing
 make package        # signed + notarized release zip
+make verify-release  # gate: .notarized marker + freshness (run before upload)
 ```
 
 Never run `go build` directly — it drops a binary in the project root. Always

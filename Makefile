@@ -34,7 +34,7 @@ PKGS := $(shell go list ./... 2>/dev/null | grep -v '/third_party/')
 CODESIGN_IDENTITY ?= Developer ID Application
 NOTARY_PROFILE    ?= nlink-jp-notary
 
-.PHONY: build build-engine build-all package deps test fmt vet clean clean-deps
+.PHONY: build build-engine build-all package verify-release deps test fmt vet clean clean-deps
 
 ## build: scaffold binary (no transcription runtime)
 build:
@@ -103,6 +103,22 @@ package: build-all
 		&& zip -j $(BINARY)-$(VERSION)-darwin-arm64.zip $(BINARY) README.md LICENSE \
 		&& rm -f README.md LICENSE
 	@scripts/notarize-darwin.sh $(DIST)/$(BINARY)-$(VERSION)-darwin-arm64.zip "$(NOTARY_PROFILE)"
+
+## verify-release: refuse to release an un-notarized zip (marker gate)
+verify-release:
+	@test -f "$(DIST)/$(BINARY)-$(VERSION)-darwin-arm64.zip.notarized" || { \
+		echo "verify-release: FAIL — $(BINARY)-$(VERSION)-darwin-arm64.zip has no notarization marker."; \
+		echo "  make package must end with '[notarize] ...: Accepted'. Do not upload this zip."; \
+		exit 1; }
+	@test "$(DIST)/$(BINARY)-$(VERSION)-darwin-arm64.zip.notarized" -nt "$(DIST)/$(BINARY)-$(VERSION)-darwin-arm64.zip" || { \
+		echo "verify-release: FAIL — the zip was rebuilt after its marker (re-run make package)."; \
+		exit 1; }
+	@tmp=$$(mktemp -d) && \
+		unzip -oq "$(DIST)/$(BINARY)-$(VERSION)-darwin-arm64.zip" -d "$$tmp" && \
+		"$$tmp/$(BINARY)" --version && \
+		spctl -a -vv -t install "$$tmp/$(BINARY)" 2>&1 | head -2 || true; \
+		rm -rf "$$tmp"
+	@echo "verify-release: OK ($(VERSION), notarization marker present)"
 
 test:
 	go test $(PKGS)
