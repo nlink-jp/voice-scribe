@@ -46,6 +46,7 @@ Needs `audio`. Everything else has a default worth knowing:
 | `output` | `output/<name>.<format>` | Where the transcript is written |
 | `translate` | off | Adds English. **Runs the audio through a second time**, so it roughly doubles the wait |
 | `prompt` | none | Context for the decoder. **Write it as a sentence, not a keyword list** — see below |
+| `vad` | the config's `vad`, else off | Gates silence through the VAD model, suppressing hallucinated text over it. Needs `silero-vad` installed — a decision for whoever is at the terminal (`models pull silero-vad`), like every model |
 | `diarize` | off | Labels who is speaking. Needs two more models |
 | `speakers` | worked out | Pin it when you know it — far more reliable than letting the clusterer decide |
 | `speaker_hints` | `A`, `B`, … | Names, in order of first appearance |

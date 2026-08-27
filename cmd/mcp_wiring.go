@@ -44,6 +44,10 @@ func (m *mcpTranscriber) Transcribe(ctx context.Context, req tools.Request, repo
 	if err != nil {
 		return transcript.Result{}, err
 	}
+	params, err := m.engineParams(req)
+	if err != nil {
+		return transcript.Result{}, err
+	}
 
 	report(0, "decoding")
 	decoded, err := audio.Decode(req.Audio)
@@ -57,14 +61,6 @@ func (m *mcpTranscriber) Transcribe(ctx context.Context, req tools.Request, repo
 		return transcript.Result{}, err
 	}
 	defer session.Close()
-
-	params := engine.Params{
-		Language:    req.Language,
-		Prompt:      req.Prompt,
-		Threads:     m.rt.Config.Transcribe.Threads,
-		OffsetSec:   req.OffsetSec,
-		DurationSec: req.DurationSec,
-	}
 
 	started := time.Now()
 	report(0.1, "transcribing")
@@ -110,6 +106,25 @@ func (m *mcpTranscriber) Transcribe(ctx context.Context, req tools.Request, repo
 		Elapsed:      time.Since(started),
 		Translate:    req.Translate,
 	}), nil
+}
+
+// engineParams builds the whisper parameters for one request, resolving VAD
+// with the same flag-or-config expression the CLI uses. It is a separate
+// method so that resolution is testable without a runtime: this wiring is
+// where the config's `vad = true` was once silently ignored (ADR-0009).
+func (m *mcpTranscriber) engineParams(req tools.Request) (engine.Params, error) {
+	vadPath, err := resolveVAD(m.rt, req.VAD || m.rt.Config.Transcribe.VAD)
+	if err != nil {
+		return engine.Params{}, err
+	}
+	return engine.Params{
+		Language:     req.Language,
+		Prompt:       req.Prompt,
+		Threads:      m.rt.Config.Transcribe.Threads,
+		OffsetSec:    req.OffsetSec,
+		DurationSec:  req.DurationSec,
+		VADModelPath: vadPath,
+	}, nil
 }
 
 func (m *mcpTranscriber) diarize(decoded audio.Audio, req tools.Request) ([]transcript.SpeakerTurn, error) {

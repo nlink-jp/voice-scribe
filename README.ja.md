@@ -184,7 +184,9 @@ prompt なしでは正しく取れていた行を壊し（prompt 中の語が無
 エージェントは最初の文字起こしの前に一度呼ぶべきです。
 
 **モデルのダウンロードは意図的に MCP から使えません** — 数百 MB の取得は端末にいる人間の
-判断です。`voice-scribe models pull` を使ってください。
+判断です。`voice-scribe models pull` を使ってください。VAD モデルも同じです:
+`transcribe` は `vad` 引数を取り、config の `vad = true` も効きますが、`silero-vad` の
+導入だけは端末で行います。
 
 設計の全体は
 [docs/ja/voice-scribe-rfp.ja.md](docs/ja/voice-scribe-rfp.ja.md)（正本）にあります。

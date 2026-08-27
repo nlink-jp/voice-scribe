@@ -32,6 +32,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
     "language": {"type": "string", "description": "ISO 639-1 code; omit to detect"},
     "translate": {"type": "boolean", "description": "Also produce English; costs a second decode"},
     "prompt": {"type": "string", "description": "Bias the decoder's vocabulary with proper nouns and jargon"},
+    "vad": {"type": "boolean", "description": "Gate silence through the VAD model, suppressing hallucinated text over it; needs silero-vad installed"},
     "offset_seconds": {"type": "number", "minimum": 0},
     "duration_seconds": {"type": "number", "minimum": 0},
     "format": {"type": "string", "enum": ["json", "text", "md", "srt", "vtt"], "description": "Default json"},
@@ -53,6 +54,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			Language         string   `json:"language"`
 			Translate        bool     `json:"translate"`
 			Prompt           string   `json:"prompt"`
+			VAD              bool     `json:"vad"`
 			OffsetSeconds    float64  `json:"offset_seconds"`
 			DurationSeconds  float64  `json:"duration_seconds"`
 			Format           string   `json:"format"`
@@ -113,6 +115,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			Language:         in.Language,
 			Translate:        in.Translate,
 			Prompt:           in.Prompt,
+			VAD:              in.VAD,
 			OffsetSec:        in.OffsetSeconds,
 			DurationSec:      in.DurationSeconds,
 			Diarize:          in.Diarize,

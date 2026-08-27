@@ -49,6 +49,10 @@ type Request struct {
 	Translate bool
 	// Prompt biases the decoder's vocabulary.
 	Prompt string
+	// VAD gates silent stretches through the voice-activity model, which the
+	// wiring resolves to a model path the same way the CLI does — including
+	// honouring the config default (ADR-0009).
+	VAD bool
 	// OffsetSec and DurationSec restrict the run to a slice of the audio.
 	OffsetSec   float64
 	DurationSec float64

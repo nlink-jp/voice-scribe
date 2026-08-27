@@ -186,7 +186,9 @@ manual; agents should call it once before their first transcription.
 
 Downloading models is deliberately **not** available over MCP — hundreds of
 megabytes is a decision for whoever is at the terminal. Use
-`voice-scribe models pull`.
+`voice-scribe models pull`. That includes the VAD model: `transcribe` takes a
+`vad` argument and honours `vad = true` from the config, but installing
+`silero-vad` stays at the terminal.
 
 The full design is in [docs/en/voice-scribe-rfp.md](docs/en/voice-scribe-rfp.md)
 (the Japanese edition is the source of truth).

@@ -21,6 +21,19 @@ hiding behind the first — see [ADR-0009](docs/adr/0009-vad-offset-composition.
   offset and duration mean seconds of the original recording whether or not
   VAD is on. A window that starts past the end of the audio now says so,
   instead of claiming the recording may be silent.
+- **`vad = true` in the config was silently ignored over MCP.** The MCP wiring
+  never consulted it — while `threads` from the same table was honoured — so
+  the CLI gated hallucinations and the MCP server did not, with nothing
+  reporting the difference. Both paths now resolve VAD with the same
+  flag-or-config expression.
+
+### Added
+
+- **A `vad` argument on the MCP `transcribe` tool**, matching the CLI's
+  `--vad`. There was previously no way to enable VAD over MCP at all. Asking
+  for it without the model installed fails as `model_not_found`, naming the
+  `models pull silero-vad` that fixes it — downloading stays a decision for
+  whoever is at the terminal.
 
 ## [0.2.0] - 2026-08-12
 

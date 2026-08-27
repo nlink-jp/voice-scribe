@@ -238,6 +238,7 @@ func TestTranscribeArgumentsReachTheEngine(t *testing.T) {
 		"language":         "ja",
 		"translate":        true,
 		"prompt":           "voice-scribe",
+		"vad":              true,
 		"diarize":          true,
 		"speakers":         2,
 		"speaker_hints":    []string{"田中", "佐藤"},
@@ -254,6 +255,9 @@ func TestTranscribeArgumentsReachTheEngine(t *testing.T) {
 	}
 	if got.OffsetSec != 1.5 || got.DurationSec != 30 {
 		t.Errorf("slice arguments lost: %+v", got)
+	}
+	if !got.VAD {
+		t.Errorf("vad lost: %+v", got)
 	}
 	if !strings.HasSuffix(got.Audio, filepath.Join("default", "meeting.m4a")) {
 		t.Errorf("Audio = %q, want an absolute path inside the workspace", got.Audio)
