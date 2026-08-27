@@ -52,6 +52,13 @@ import (
 	"unsafe"
 )
 
+// vadWindow converts seconds to samples with the Go-side sampleRate constant;
+// these fail to compile if it ever drifts from the header's rate.
+var (
+	_ [C.WHISPER_SAMPLE_RATE - sampleRate]struct{}
+	_ [sampleRate - C.WHISPER_SAMPLE_RATE]struct{}
+)
+
 // installLogHandler is run once, before the first context is created, so that
 // no runtime output escapes before the callback is in place.
 var installLogHandler = sync.OnceFunc(func() {
@@ -103,6 +110,11 @@ func (s *whisperSession) Transcribe(samples []float32, p Params, onProgress Prog
 	}
 	if len(samples) == 0 {
 		return Result{}, fmt.Errorf("no audio samples to transcribe")
+	}
+
+	samples, p, shift := vadWindow(samples, p)
+	if len(samples) == 0 {
+		return Result{}, fmt.Errorf("the requested offset (%gs) is at or past the end of the audio", shift)
 	}
 
 	wp := C.whisper_full_default_params(C.WHISPER_SAMPLING_GREEDY)
@@ -173,9 +185,10 @@ func (s *whisperSession) Transcribe(samples []float32, p Params, onProgress Prog
 			continue
 		}
 		segments = append(segments, Segment{
-			// Timestamps come back in centiseconds, not milliseconds.
-			Start: float64(C.whisper_full_get_segment_t0(s.ctx, C.int(i))) / 100,
-			End:   float64(C.whisper_full_get_segment_t1(s.ctx, C.int(i))) / 100,
+			// Timestamps come back in centiseconds, not milliseconds. The
+			// shift puts a vadWindow cut back on the original timeline.
+			Start: float64(C.whisper_full_get_segment_t0(s.ctx, C.int(i)))/100 + shift,
+			End:   float64(C.whisper_full_get_segment_t1(s.ctx, C.int(i)))/100 + shift,
 			Text:  text,
 		})
 	}

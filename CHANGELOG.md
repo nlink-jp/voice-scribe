@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Two VAD defects reported against v0.2.0, fixed together because the second was
+hiding behind the first — see [ADR-0009](docs/adr/0009-vad-offset-composition.md).
+
+### Fixed
+
+- **`--vad` with `--offset`/`--duration` silently transcribed a different
+  stretch of the audio.** Upstream runs VAD before applying the offset, so the
+  offset counted seconds into the silence-stripped audio while the returned
+  timestamps still pointed at the original timeline — the result looked
+  perfectly consistent and was off by the length of every silence before the
+  requested point. The window is now cut on the Go side before VAD runs, so
+  offset and duration mean seconds of the original recording whether or not
+  VAD is on. A window that starts past the end of the audio now says so,
+  instead of claiming the recording may be silent.
+
 ## [0.2.0] - 2026-08-12
 
 The Japanese default was picked by reasoning and never measured. Measuring it
