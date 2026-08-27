@@ -105,6 +105,14 @@ time overlap. That merge is an approximation and is documented as such — do no
 "fix" a translation that reads as slightly offset by tightening the merge without
 first checking the two passes' actual boundaries.
 
+**Upstream applies VAD before the offset.** `whisper_full` strips silence
+first, so `offset_ms`/`duration_ms` count seconds into the compressed buffer —
+while the returned timestamps are mapped back to the original timeline, so the
+result looks consistent and silently covers the wrong stretch.
+`engine.vadWindow` therefore cuts the requested window on the Go side and
+hands whisper zeroes (ADR-0009); never pass a non-zero offset together with
+VAD.
+
 **Static archive link order matters** (dependents first):
 `libwhisper.a` → `libparakeet.a` → `libggml.a` → `libggml-cpu.a` →
 `libggml-metal.a` → `libggml-blas.a` → `libggml-base.a`. A wrong order surfaces
