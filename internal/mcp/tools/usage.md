@@ -22,9 +22,11 @@ A workspace is a directory holding one project's recordings and transcripts:
 ```
 
 `workspace_root` is an absolute path you pass per call — **the server works in
-the workplace you prepared**. Omit it and the server uses its own directory
-under `~/.local/share/voice-scribe/mcp-workspaces`, which is fine for one-off
-work but means you must put the recording there first. `workspace_id` defaults
+the workplace you prepared**, so pass one you can both write to and read back:
+you put the recording there, and the transcript comes back as a path under it.
+Omit it and the server uses its own directory under
+`~/.local/share/voice-scribe/mcp-workspaces`, which is fine for one-off work
+but means you must put the recording there first. `workspace_id` defaults
 to `default`.
 
 Paths in arguments are always **relative to the workspace**. Absolute paths and
