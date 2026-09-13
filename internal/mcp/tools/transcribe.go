@@ -21,8 +21,9 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 	srv.RegisterTool(mcpserver.Tool{
 		Name: "transcribe",
 		Description: "Transcribe a recording that is already in the workspace. Returns a job_id immediately; " +
-			"poll it with check_job. When the job finishes, a short transcript comes back inline and a long " +
-			"one comes back as a path with an excerpt — the file is written either way. Optionally labels " +
+			"poll it with check_job. When the job finishes, the transcript comes back in the result up to " +
+			"max_bytes, with anything past the cap counted in omitted_bytes; the file is written either " +
+			"way and holds all of it. Optionally labels " +
 			"who is speaking (diarize) and adds an English translation (translate).",
 		InputSchema: json.RawMessage(`{
   "type": "object",

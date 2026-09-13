@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A config still carrying `[mcp] inline_threshold` fails to load, naming
   `max_bytes` as the replacement.
 
+### Added
+
+- `TestModelFacingTextNamesNoWithdrawnDeliveryMode` — walks the initialize
+  instructions, the usage manual and every tool's description and schema for the
+  words that described the withdrawn switch. It found two tool descriptions the
+  rename had missed.
+
 ### Removed
 
 - The `excerpt` field. A preview standing in for text that was withheld has
