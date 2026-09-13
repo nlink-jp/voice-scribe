@@ -44,7 +44,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
     "speakers": {"type": "integer", "minimum": 0, "description": "Pin the speaker count when known"},
     "speaker_threshold": {"type": "number", "minimum": 0, "description": "Clustering distance when the count is unknown"},
     "speaker_hints": {"type": "array", "items": {"type": "string"}, "description": "Names replacing A/B/C, in order of first appearance"},
-    "inline_threshold": {"type": "integer", "minimum": 0, "description": "Bytes at or below which the transcript is returned inline"}
+    "max_bytes": {"type": "integer", "minimum": 0, "description": "Cap on transcript bytes carried in the result (default from config, 65536; 0 means no cap). What the cap leaves out is counted in omitted_bytes, and bytes stays the exact total. The transcript file is written either way \u2014 set this to what your context can hold."}
   },
   "additionalProperties": false
 }`),
@@ -66,7 +66,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			Speakers         int      `json:"speakers"`
 			SpeakerThreshold float64  `json:"speaker_threshold"`
 			SpeakerHints     []string `json:"speaker_hints"`
-			InlineThreshold  int      `json:"inline_threshold"`
+			MaxBytes         *int     `json:"max_bytes"`
 		}
 		if err := unmarshalStrict(args, &in); err != nil {
 			return nil, err
@@ -107,9 +107,15 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			return nil, err
 		}
 
-		threshold := in.InlineThreshold
-		if threshold == 0 {
-			threshold = d.InlineThreshold
+		// A caller that passes 0 means "no cap"; one that passes nothing gets
+		// the configured default. The pointer is what tells the two apart.
+		maxBytes := d.MaxBytes
+		if in.MaxBytes != nil {
+			// An explicit 0 is "no cap"; resultFor reads 0 as "use the
+			// default", so the two are told apart here, once.
+			if maxBytes = *in.MaxBytes; maxBytes == 0 {
+				maxBytes = -1
+			}
 		}
 
 		req := Request{
@@ -160,7 +166,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 
 			primary := withSuffix(outRel, files[0].Suffix)
 			out := resultFor(where{WorkDir: workDir, WorkspaceID: ws.ID, Rel: primary, Abs: ws.Path(primary)},
-				string(format), files[0].Content, threshold, result)
+				string(format), files[0].Content, maxBytes, result)
 			if len(extra) == 0 {
 				return out, nil
 			}

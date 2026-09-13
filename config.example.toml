@@ -43,6 +43,7 @@ enabled = false
 # threshold = 0.5
 
 [mcp]
-# Transcripts at or below this many bytes are returned inline to the agent;
-# larger ones are written to a file and returned as a path with an excerpt.
-inline_threshold = 8192
+# Cap on how many bytes of the transcript a tool result carries. It bounds the
+# response only: the transcript file is written either way, and what the cap
+# leaves out is counted in omitted_bytes. 0 means no cap.
+max_bytes = 65536

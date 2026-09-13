@@ -46,11 +46,23 @@ type Diarize struct {
 	Threshold float64 `toml:"threshold"`
 }
 
+// DefaultMaxBytes caps how much transcript a tool result carries when nothing
+// says otherwise. It matches the byte budget the rest of the fleet uses for
+// text-shaped results (pcap-analyzer-mcp's output.max_bytes), so an agent
+// meeting a second nlink-jp server meets the same number.
+const DefaultMaxBytes = 65536
+
 // MCP holds the defaults for the MCP server.
 type MCP struct {
-	// InlineThreshold is the transcript size, in bytes, at or below which the
-	// text is returned to the agent inline instead of as a file path.
-	InlineThreshold int `toml:"inline_threshold"`
+	// MaxBytes caps how much of the transcript a tool result carries. It
+	// bounds the response and nothing else: the transcript file is written
+	// either way, because it is this server's product. Zero means no cap.
+	//
+	// It replaces inline_threshold, which decided the delivery *mode* — whole
+	// text or a path plus a preview. A server cannot know the caller's context
+	// window, so the caller gets a cap it can set and an exact count of what
+	// the cap left out (ADR-0011, organization ADR-021).
+	MaxBytes int `toml:"max_bytes"`
 }
 
 // Default returns the configuration used when nothing is set anywhere.
@@ -71,7 +83,7 @@ func Default() Config {
 			Enabled: false,
 		},
 		MCP: MCP{
-			InlineThreshold: 8192,
+			MaxBytes: DefaultMaxBytes,
 		},
 	}
 }
@@ -187,6 +199,16 @@ func decodeFile(path string, cfg *Config) error {
 	if undecoded := md.Undecoded(); len(undecoded) > 0 {
 		keys := make([]string, 0, len(undecoded))
 		for _, k := range undecoded {
+			// A key this server removed deserves its name and its reason, not
+			// the same "unknown key" a typo gets: the operator set it
+			// deliberately and has to be told what replaced it.
+			if k.String() == "mcp.inline_threshold" {
+				return fmt.Errorf("config file %s: [mcp] inline_threshold was removed in ADR-0011: "+
+					"it decided whether the result carried the whole transcript or a path plus a preview, "+
+					"which is a judgement about your context window that this server cannot make. "+
+					"Use max_bytes (the cap on transcript bytes carried in the result, default %d; "+
+					"0 means no cap) — the transcript file is written either way", path, DefaultMaxBytes)
+			}
 			keys = append(keys, k.String())
 		}
 		return fmt.Errorf("config file %s: unknown key(s): %s", path, strings.Join(keys, ", "))
@@ -239,8 +261,8 @@ func (c Config) Validate() error {
 	if c.Diarize.Threshold < 0 {
 		return errors.New("diarize.threshold must not be negative")
 	}
-	if c.MCP.InlineThreshold < 0 {
-		return errors.New("mcp.inline_threshold must not be negative")
+	if c.MCP.MaxBytes < 0 {
+		return errors.New("mcp.max_bytes must not be negative (zero means no cap)")
 	}
 	return nil
 }

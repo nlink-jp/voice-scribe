@@ -172,13 +172,14 @@ func TestTranscribeWritesTheTranscriptAndReturnsItInline(t *testing.T) {
 	}
 }
 
-// TestLongTranscriptsComeBackAsAPath is the other half of the two-tier
-// contract: past the threshold the agent gets a pointer and a taste, not the
-// whole thing crowding out its context.
-func TestLongTranscriptsComeBackAsAPath(t *testing.T) {
+// TestTranscriptPastTheCapIsCountedNotSwapped is the replacement for the old
+// two-tier test (ADR-0011 withdrew the delivery-mode switch): a transcript past
+// the cap still comes back as text — as much as the cap allows — and what was
+// left out is counted rather than replaced by a preview.
+func TestTranscriptPastTheCapIsCountedNotSwapped(t *testing.T) {
 	h := newHarness(t)
-	// Comfortably past DefaultInlineThreshold; "長い行です。" is 18 bytes.
-	h.fake.result = transcriptOf(strings.Repeat("長い行です。", 800))
+	// Comfortably past DefaultMaxBytes; "長い行です。" is 18 bytes.
+	h.fake.result = transcriptOf(strings.Repeat("長い行です。", 8000))
 
 	st := h.await(t, h.call(t, "transcribe", map[string]any{
 		"audio":    "meeting.m4a",
@@ -188,32 +189,56 @@ func TestLongTranscriptsComeBackAsAPath(t *testing.T) {
 	res := st.Result.(Result)
 
 	if !res.Truncated {
-		t.Fatalf("a %d-byte transcript was returned inline", res.Bytes)
+		t.Fatalf("a %d-byte transcript was returned whole", res.Bytes)
 	}
-	if res.Text != "" {
-		t.Error("a truncated result should not also carry the full text")
+	if res.Text == "" {
+		t.Error("a capped result still carries text; it is not swapped for a preview")
 	}
-	if res.Excerpt == "" {
-		t.Error("a truncated result carries no excerpt, so the agent cannot tell what it got")
+	if len(res.Text) > DefaultMaxBytes+16 {
+		t.Errorf("text is %d bytes, want at most about %d", len(res.Text), DefaultMaxBytes)
 	}
-	if len(res.Excerpt) > excerptLimit+16 {
-		t.Errorf("excerpt is %d bytes, want about %d", len(res.Excerpt), excerptLimit)
+	if res.OmittedBytes != res.Bytes-len(res.Text) {
+		t.Errorf("omitted_bytes = %d, want %d — the count must be exact",
+			res.OmittedBytes, res.Bytes-len(res.Text))
+	}
+	if res.Note == "" {
+		t.Error("the drop must be stated in words too")
 	}
 	if _, err := os.ReadFile(filepath.Join(h.wsDir, res.Path)); err != nil {
 		t.Errorf("transcript was not written: %v", err)
 	}
 }
 
-func TestInlineThresholdIsOverridablePerCall(t *testing.T) {
+func TestMaxBytesIsOverridablePerCall(t *testing.T) {
 	h := newHarness(t)
 	st := h.await(t, h.call(t, "transcribe", map[string]any{
-		"audio":            "meeting.m4a",
-		"work_dir":         h.root,
-		"inline_threshold": 1,
+		"audio":     "meeting.m4a",
+		"work_dir":  h.root,
+		"max_bytes": 1,
 	}))
 
 	if res := st.Result.(Result); !res.Truncated {
-		t.Error("inline_threshold=1 still returned the transcript inline")
+		t.Error("max_bytes=1 still returned the whole transcript")
+	}
+}
+
+// Zero is the caller saying "no cap", which is not the same as saying nothing.
+func TestMaxBytesZeroMeansNoCap(t *testing.T) {
+	h := newHarness(t)
+	h.fake.result = transcriptOf(strings.Repeat("長い行です。", 8000))
+
+	st := h.await(t, h.call(t, "transcribe", map[string]any{
+		"audio":     "meeting.m4a",
+		"work_dir":  h.root,
+		"format":    "text",
+		"max_bytes": 0,
+	}))
+	res := st.Result.(Result)
+	if res.Truncated || res.OmittedBytes != 0 {
+		t.Errorf("max_bytes=0 must mean no cap, got truncated=%v omitted=%d", res.Truncated, res.OmittedBytes)
+	}
+	if len(res.Text) != res.Bytes {
+		t.Errorf("text is %d bytes but the transcript is %d", len(res.Text), res.Bytes)
 	}
 }
 

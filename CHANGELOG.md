@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-14
+
+### Changed
+
+- **Breaking: `[mcp] inline_threshold` is now `max_bytes`, and the result always
+  carries the transcript.** The old threshold switched the *delivery mode*: at or
+  below 8 KB you got the whole text, above it you got an `excerpt` and a path and
+  no text at all. That is a judgement about your context window, which this
+  server cannot make — the same reason splunk-mcp and pcap-analyzer-mcp dropped
+  their spills. `max_bytes` (config `[mcp] max_bytes`, tool argument `max_bytes`,
+  default 65536, `0` means no cap) bounds the response and nothing else: the
+  result carries as much text as the cap allows, `truncated` and `omitted_bytes`
+  say exactly what it left out, `bytes` stays the full size, and `path` /
+  `absolute_path` reach all of it. See
+  [ADR-0011](docs/adr/0011-response-cap-not-delivery-mode.md).
+- **The transcript file is written either way, as before.** It is this server's
+  product — an srt you hand to a video player, a json a downstream tool reads —
+  so `work_dir` stays required (ADR-0010). The cap never decides whether the
+  artifact exists.
+- A config still carrying `[mcp] inline_threshold` fails to load, naming
+  `max_bytes` as the replacement.
+
+### Removed
+
+- The `excerpt` field. A preview standing in for text that was withheld has
+  nothing to stand in for any more.
+
 ## [0.3.1] - 2026-09-14
 
 ### Fixed

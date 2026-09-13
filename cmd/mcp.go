@@ -61,12 +61,12 @@ func runMCP(cmd *cobra.Command, args []string) error {
 	})
 
 	deps := &tools.Deps{
-		WS:              workspace.NewManager(),
-		WorkDir:         workdir.Resolver{Denied: []string{serverDataDir()}},
-		Transcribe:      newMCPTranscriber(rt),
-		ListModels:      func(scope string) (any, error) { return listModelsView(rt, scope) },
-		Jobs:            job.NewManager(cmd.Context()),
-		InlineThreshold: rt.Config.MCP.InlineThreshold,
+		WS:         workspace.NewManager(),
+		WorkDir:    workdir.Resolver{Denied: []string{serverDataDir()}},
+		Transcribe: newMCPTranscriber(rt),
+		ListModels: func(scope string) (any, error) { return listModelsView(rt, scope) },
+		Jobs:       job.NewManager(cmd.Context()),
+		MaxBytes:   rt.Config.MCP.MaxBytes,
 	}
 
 	srv := mcpserver.New("voice-scribe", Version, transport.NewStdioTransport(os.Stdin, protocolOut), nil)

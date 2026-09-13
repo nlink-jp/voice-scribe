@@ -41,8 +41,8 @@ func TestDefaultsApplyWhenNoFileExists(t *testing.T) {
 	if cfg.DefaultModel != Default().DefaultModel {
 		t.Errorf("DefaultModel = %q, want the built-in default", cfg.DefaultModel)
 	}
-	if cfg.MCP.InlineThreshold != 8192 {
-		t.Errorf("InlineThreshold = %d, want 8192", cfg.MCP.InlineThreshold)
+	if cfg.MCP.MaxBytes != DefaultMaxBytes {
+		t.Errorf("MaxBytes = %d, want %d", cfg.MCP.MaxBytes, DefaultMaxBytes)
 	}
 }
 
@@ -209,9 +209,9 @@ func TestModelsDirExpandsHome(t *testing.T) {
 
 func TestValidateRejectsImpossibleSettings(t *testing.T) {
 	for name, mutate := range map[string]func(*Config){
-		"negative threads":    func(c *Config) { c.Transcribe.Threads = -1 },
-		"negative threshold":  func(c *Config) { c.Diarize.Threshold = -0.1 },
-		"negative mcp inline": func(c *Config) { c.MCP.InlineThreshold = -1 },
+		"negative threads":       func(c *Config) { c.Transcribe.Threads = -1 },
+		"negative threshold":     func(c *Config) { c.Diarize.Threshold = -0.1 },
+		"negative mcp max_bytes": func(c *Config) { c.MCP.MaxBytes = -1 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			cfg := Default()
@@ -234,5 +234,24 @@ func TestSearchPathsAreReportable(t *testing.T) {
 	}
 	if paths[0] != "/explicit.toml" {
 		t.Errorf("paths[0] = %q, want $VOICE_SCRIBE_CONFIG first", paths[0])
+	}
+}
+
+// A key this server removed must be answered by name: the operator set it
+// deliberately, and "unknown key(s)" reads like a typo.
+func TestRemovedInlineThresholdIsRejectedByName(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(path, []byte("[mcp]\ninline_threshold = 8192\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := Load(path, Env{})
+	if err == nil {
+		t.Fatal("a config carrying inline_threshold must fail to load")
+	}
+	for _, want := range []string{"inline_threshold", "max_bytes", "ADR-0011"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err, want)
+		}
 	}
 }

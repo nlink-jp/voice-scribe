@@ -77,10 +77,13 @@ Returns `{job_id, state, work_dir, workspace_id, output, next}`. It does
 Takes `job_id`. While running it reports progress; when `done` the result holds
 the transcript.
 
-**Short transcripts come back inline** in `text`. Long ones come back with
-`truncated: true`, an `excerpt`, and a `path` to read. The file is written in
-both cases — the threshold only decides whether you also get the text without
-asking. Override it per call with `inline_threshold`.
+**The transcript comes back in `text`**, up to `max_bytes` (default 65536; set
+`max_bytes: 0` for no cap). Past the cap the result still carries text — as much
+as the cap allows — plus `truncated: true`, an exact `omitted_bytes`, and a
+`note`. `bytes` is always the full size, and `path` / `absolute_path` reach all
+of it: the transcript file is written either way, because it is this server's
+product. The cap bounds the response and nothing else — what fits in your
+context is your judgement, not this server's.
 
 Either way the result carries `model`, `language`, `segments`, `duration_seconds`,
 and `speakers` when diarization ran.

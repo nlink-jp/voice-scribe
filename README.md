@@ -176,9 +176,10 @@ whose model cannot process audio a way to read recordings. Register it with your
 client as the command `voice-scribe mcp`; it takes no arguments.
 
 Four tools: `get_usage`, `transcribe`, `check_job`, `list_models`. Transcription
-is asynchronous — `transcribe` returns a job id that `check_job` polls. A short
-transcript comes back inline and a long one as a file path with an excerpt; the
-file is written either way.
+is asynchronous — `transcribe` returns a job id that `check_job` polls. The transcript comes back
+in the result up to `max_bytes` (default 65536; `0` means no cap), with anything
+past the cap counted exactly in `omitted_bytes`; the file is written either way
+and holds all of it.
 
 Every call names `work_dir`: the absolute path of a directory the agent can read
 back, which is where transcripts are written. A recording may sit there, or be

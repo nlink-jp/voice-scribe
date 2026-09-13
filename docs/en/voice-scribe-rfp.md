@@ -125,11 +125,15 @@ The envelope is **compatible with gem-transcribe**, so that downstream consumers
 Because the artifact is text, the file-mediated principle used by the image and
 audio MCP servers is not applied wholesale.
 
-- **8 KB or less** (default): the text is returned inline — one round trip
-- Above the threshold: a file path under `output/`, plus a leading excerpt and
-  the total segment count
-- The threshold is overridable via `[mcp] inline_threshold` in config and via a
-  tool argument
+- ~~**8 KB or less** (default): the text is returned inline — one round trip~~
+- ~~Above the threshold: a file path under `output/`, plus a leading excerpt and
+  the total segment count~~
+- ~~The threshold is overridable via `[mcp] inline_threshold` in config and via a
+  tool argument~~
+- → revised 2026-09-14 (ADR-0011): there is no delivery-mode switch. The result
+  always carries the text, capped by `max_bytes` (default 65536, `0` = no cap),
+  with what the cap left out counted in `omitted_bytes`. The file under
+  `output/` is written either way — it is the product, not a spill target
 
 ### Configuration
 
