@@ -19,9 +19,12 @@ var usageMarkdown string
 // Instructions is the short initialize-time hint that makes get_usage
 // discoverable (surfaced via the MCP `instructions` field).
 const Instructions = "voice-scribe transcribes recordings locally with whisper.cpp — no API key, and no audio " +
-	"leaves the machine. It is stateful and async: recordings live in a workspace directory you prepare, " +
-	"transcribe returns a job_id which you poll with check_job, and a finished transcript comes back inline " +
-	"when it is short and as a file path with an excerpt when it is long. It can also label who is speaking. " +
+	"leaves the machine. Every call names work_dir: the absolute path of a directory you can read back " +
+	"(your session or working directory). It is required and has no default, and the workspace is " +
+	"<work_dir>/<workspace_id>/. It is stateful and async: transcribe returns a job_id which you poll with " +
+	"check_job, and a finished transcript comes back inline when it is short and as a file path with an " +
+	"excerpt when it is long. audio may be an absolute path to a recording anywhere you can read. " +
+	"It can also label who is speaking. " +
 	"Call the get_usage tool before your first transcription to learn the workspace model, the transcribe " +
 	"arguments, the job lifecycle, and the error recovery table."
 
