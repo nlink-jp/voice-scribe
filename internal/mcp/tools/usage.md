@@ -42,7 +42,10 @@ so is a symlink pointing outside — containment is enforced by the kernel, not 
 string matching.
 
 `audio` is the exception, and deliberately: it may be **an absolute path to a
-recording anywhere you can read**, and it is read in place, never copied —
+recording anywhere you can read**, and a relative name is looked for in the
+workspace *and* in `work_dir` itself (the workspace wins if both hold it), so a
+file you just wrote next to your work directory is found without moving it. It
+is read in place, never copied —
 copying an hour of audio into the workspace to transcribe it would be waste.
 What is refused there is a credential or agent-control location (`~/.ssh`,
 `~/.aws`, `~/.gnupg`, `~/.config/gcloud`, `~/Library/Keychains`, `~/.claude`,

@@ -474,3 +474,61 @@ func TestMissingAudioErrorNamesThePathAndTheEscape(t *testing.T) {
 		t.Errorf("error does not offer the absolute-path escape: %q", msg)
 	}
 }
+
+// TestRelativeAudioFallsBackToTheWorkDir: an agent that has just written a file
+// puts it where it is working, not in a subdirectory it did not choose. Two
+// real sessions (2026-09-14) lost rounds to the workspace being one level below
+// the work directory, so a relative name is looked for in both.
+func TestRelativeAudioFallsBackToTheWorkDir(t *testing.T) {
+	h := newHarness(t)
+	// Not in the workspace — one level up, in the work directory itself.
+	if err := os.WriteFile(filepath.Join(h.root, "loose.m4a"), []byte("audio"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	st := h.await(t, h.call(t, "transcribe", map[string]any{
+		"audio":    "loose.m4a",
+		"work_dir": h.root,
+	}))
+	if st.Error != nil {
+		t.Fatalf("a recording in the work directory must be found: %v", st.Error)
+	}
+}
+
+// The workspace wins when both hold the name, so the fallback can never change
+// what an existing, working call resolves to.
+func TestWorkspaceBeatsTheWorkDirFallback(t *testing.T) {
+	h := newHarness(t)
+	if err := os.WriteFile(filepath.Join(h.root, "meeting.m4a"), []byte("wrong one"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	st := h.await(t, h.call(t, "transcribe", map[string]any{
+		"audio":    "meeting.m4a",
+		"work_dir": h.root,
+	}))
+	if st.Error != nil {
+		t.Fatalf("transcribe: %v", st.Error)
+	}
+	// The manager resolves symlinks (/var → /private/var here), so compare on
+	// the resolved spelling rather than the one the test happens to hold.
+	want, err := filepath.EvalSymlinks(filepath.Join(h.wsDir, "meeting.m4a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := h.fake.seen.Audio; got != want {
+		t.Errorf("decoder read %q, want the workspace copy %q", got, want)
+	}
+}
+
+// TestAbsoluteAudioAtTheWrongLevelIsPointedAtTheRightOne is the regression for
+// a session that passed <work_dir>/x.aiff for a file at <work_dir>/<id>/x.aiff.
+func TestAbsoluteAudioAtTheWrongLevelIsPointedAtTheRightOne(t *testing.T) {
+	h := newHarness(t)
+	err := h.callErr(t, "transcribe", map[string]any{
+		"audio":    filepath.Join(h.root, "meeting.m4a"), // one level too high
+		"work_dir": h.root,
+	})
+	if !strings.Contains(err.Error(), filepath.Join(h.wsDir, "meeting.m4a")) {
+		t.Errorf("error does not point at the file that is actually there: %q", err)
+	}
+}
