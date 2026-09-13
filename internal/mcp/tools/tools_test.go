@@ -64,7 +64,7 @@ func newHarness(t *testing.T) *harness {
 	root := t.TempDir()
 	fake := &fakeTranscriber{result: transcriptOf("こんにちは。", "本日はテストです。")}
 	deps := &Deps{
-		WS:         workspace.NewManager(filepath.Join(root, "default-root")),
+		WS:         workspace.NewManager(),
 		Transcribe: fake,
 		Jobs:       job.NewManager(context.Background()),
 		ListModels: func(scope string) (any, error) { return map[string]any{"scope": scope}, nil },
@@ -139,9 +139,9 @@ func (h *harness) await(t *testing.T, submitted any) job.Status {
 func TestTranscribeWritesTheTranscriptAndReturnsItInline(t *testing.T) {
 	h := newHarness(t)
 	st := h.await(t, h.call(t, "transcribe", map[string]any{
-		"audio":          "meeting.m4a",
-		"workspace_root": h.root,
-		"format":         "text",
+		"audio":    "meeting.m4a",
+		"work_dir": h.root,
+		"format":   "text",
 	}))
 
 	if st.State != job.StateDone {
@@ -181,9 +181,9 @@ func TestLongTranscriptsComeBackAsAPath(t *testing.T) {
 	h.fake.result = transcriptOf(strings.Repeat("長い行です。", 800))
 
 	st := h.await(t, h.call(t, "transcribe", map[string]any{
-		"audio":          "meeting.m4a",
-		"workspace_root": h.root,
-		"format":         "text",
+		"audio":    "meeting.m4a",
+		"work_dir": h.root,
+		"format":   "text",
 	}))
 	res := st.Result.(Result)
 
@@ -208,7 +208,7 @@ func TestInlineThresholdIsOverridablePerCall(t *testing.T) {
 	h := newHarness(t)
 	st := h.await(t, h.call(t, "transcribe", map[string]any{
 		"audio":            "meeting.m4a",
-		"workspace_root":   h.root,
+		"work_dir":         h.root,
 		"inline_threshold": 1,
 	}))
 
@@ -233,7 +233,7 @@ func TestTranscribeArgumentsReachTheEngine(t *testing.T) {
 	h := newHarness(t)
 	h.await(t, h.call(t, "transcribe", map[string]any{
 		"audio":            "meeting.m4a",
-		"workspace_root":   h.root,
+		"work_dir":         h.root,
 		"model":            "kotoba-whisper-v2.2",
 		"language":         "ja",
 		"translate":        true,
@@ -274,8 +274,8 @@ func TestPathsAreConfinedToTheWorkspace(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := h.callErr(t, "transcribe", map[string]any{
-				"audio":          audio,
-				"workspace_root": h.root,
+				"audio":    audio,
+				"work_dir": h.root,
 			})
 			if !isCode(err, toolerr.CodePathNotAllowed) {
 				t.Errorf("err = %v, want path_not_allowed", err)
@@ -287,8 +287,8 @@ func TestPathsAreConfinedToTheWorkspace(t *testing.T) {
 func TestMissingRecordingIsReportedBeforeAnyJobStarts(t *testing.T) {
 	h := newHarness(t)
 	err := h.callErr(t, "transcribe", map[string]any{
-		"audio":          "absent.m4a",
-		"workspace_root": h.root,
+		"audio":    "absent.m4a",
+		"work_dir": h.root,
 	})
 	if !isCode(err, toolerr.CodeInputNotFound) {
 		t.Errorf("err = %v, want input_not_found", err)
@@ -298,9 +298,9 @@ func TestMissingRecordingIsReportedBeforeAnyJobStarts(t *testing.T) {
 func TestUnknownArgumentsAreRejected(t *testing.T) {
 	h := newHarness(t)
 	err := h.callErr(t, "transcribe", map[string]any{
-		"audio":          "meeting.m4a",
-		"workspace_root": h.root,
-		"langauge":       "ja",
+		"audio":    "meeting.m4a",
+		"work_dir": h.root,
+		"langauge": "ja",
 	})
 	if !isCode(err, toolerr.CodeInvalidArguments) {
 		t.Errorf("err = %v, want invalid_arguments for a mistyped argument", err)
@@ -322,8 +322,8 @@ func TestEngineFailuresGetStableCodes(t *testing.T) {
 			h := newHarness(t)
 			h.fake.err = tc.err
 			st := h.await(t, h.call(t, "transcribe", map[string]any{
-				"audio":          "meeting.m4a",
-				"workspace_root": h.root,
+				"audio":    "meeting.m4a",
+				"work_dir": h.root,
 			}))
 			if st.State != job.StateError {
 				t.Fatalf("state = %s, want error", st.State)
@@ -340,8 +340,8 @@ func TestSilentRecordingIsItsOwnError(t *testing.T) {
 	h.fake.result = transcript.Result{Metadata: transcript.Metadata{Model: "m", Languages: []string{"ja"}}}
 
 	st := h.await(t, h.call(t, "transcribe", map[string]any{
-		"audio":          "meeting.m4a",
-		"workspace_root": h.root,
+		"audio":    "meeting.m4a",
+		"work_dir": h.root,
 	}))
 	if st.Error == nil || st.Error.Code != toolerr.CodeEmptyTranscript {
 		t.Errorf("code = %v, want empty_transcript", st.Error)

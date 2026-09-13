@@ -10,24 +10,31 @@ speaking. No API key, and no audio leaves the machine.
 3. Poll `check_job` until it reports `done`.
 4. Read the transcript from the result, or from the file it names.
 
-## Workspaces
+## The work directory
 
-A workspace is a directory holding one project's recordings and transcripts:
+Every call names `work_dir`: **the absolute path of a directory you can read
+back** — your session or working directory. The server works in the workplace
+you prepared. A workspace is one project's recordings and transcripts inside it:
 
 ```
-<workspace_root>/<workspace_id>/
+<work_dir>/<workspace_id>/
 ├── meeting.m4a          you put this here
 └── output/
     └── meeting.json     the server writes this
 ```
 
-`workspace_root` is an absolute path you pass per call — **the server works in
-the workplace you prepared**, so pass one you can both write to and read back:
-you put the recording there, and the transcript comes back as a path under it.
-Omit it and the server uses its own directory under
-`~/.local/share/voice-scribe/mcp-workspaces`, which is fine for one-off work
-but means you must put the recording there first. `workspace_id` defaults
-to `default`.
+It is required, and there is no default: a transcript written somewhere you
+cannot open is a successful call and a useless one. The directory must already
+exist — it is yours, so a path that is not there is a typo, and the server will
+not create it. Nothing expands `~` or resolves a relative path on the way here.
+`workspace_id` defaults to `default`.
+
+Every result echoes the resolved `work_dir` and `workspace_id`, which is how
+you find your files when your runtime supplied the directory for you (it may
+set `_meta["jp.nlink/work_dir"]` on the call instead of you passing it).
+
+If you pass `workspace_root`, `workspaceRoot` or `workspace_dir`, the call is
+refused: those are the old names for this argument.
 
 Paths in arguments are always **relative to the workspace**. Absolute paths and
 paths escaping the workspace are refused with `path_not_allowed`, and so are
@@ -38,7 +45,7 @@ string matching.
 
 ### `transcribe`
 
-Needs `audio`. Everything else has a default worth knowing:
+Needs `work_dir` and `audio`. Everything else has a default worth knowing:
 
 | Argument | Default | Notes |
 |---|---|---|
@@ -54,7 +61,8 @@ Needs `audio`. Everything else has a default worth knowing:
 | `speaker_hints` | `A`, `B`, … | Names, in order of first appearance |
 | `offset_seconds` / `duration_seconds` | whole file | Transcribe a slice |
 
-Returns `{job_id, state, output, next}`. It does **not** wait.
+Returns `{job_id, state, work_dir, workspace_id, output, next}`. It does
+**not** wait.
 
 ### `check_job`
 
@@ -166,7 +174,12 @@ Every failure carries a stable `code` you can branch on.
 | `missing_argument` | A required argument was absent | Read the message; it names the argument |
 | `invalid_arguments` | Unknown or mistyped argument | Arguments are strict — check the spelling against the schema |
 | `path_not_allowed` | Path was absolute, escaped the workspace, or was a symlink out of it | Use a workspace-relative path to a real file |
-| `input_not_found` | The recording is not in the workspace | Put it there, or fix `workspace_root` / `workspace_id` |
+| `work_dir_required` | No `work_dir` argument, and your runtime set no `_meta` hint (or you sent one of the old names) | Pass the absolute path of a directory you can read back |
+| `work_dir_invalid` | Not absolute, started with `~`, or contained `..` | Pass the path you mean, spelled out |
+| `work_dir_not_found` | The directory is not there, or is not a directory | It is your directory, so this is a typo — the server will not create it |
+| `work_dir_not_writable` | The server cannot write there | Pass a directory you own |
+| `work_dir_denied` | A system location, your home directory itself, or the server's own data directory | Pass your session or working directory |
+| `input_not_found` | The recording is not in the workspace | Put it there, or fix `work_dir` / `workspace_id` |
 | `decode_failed` | The container or codec could not be read | Convert to m4a or wav |
 | `model_not_found` | The named model is not installed | `list_models`, then `voice-scribe models pull <name>` at a terminal |
 | `no_runtime` | This binary was built without the transcription runtime | Rebuild with `make build-engine` |

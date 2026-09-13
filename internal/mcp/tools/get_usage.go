@@ -28,7 +28,7 @@ const Instructions = "voice-scribe transcribes recordings locally with whisper.c
 func registerGetUsage(srv *mcpserver.Server, d *Deps) {
 	srv.RegisterTool(mcpserver.Tool{
 		Name: "get_usage",
-		Description: "Return this server's operating manual (markdown): the workspace model and workspace_root, " +
+		Description: "Return this server's operating manual (markdown): the work_dir contract and the workspace model, " +
 			"the transcribe arguments, the async job lifecycle (transcribe -> job_id -> check_job), how " +
 			"transcripts are returned, speaker diarization, and the error recovery table. " +
 			"Call it once before your first transcription.",

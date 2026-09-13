@@ -75,6 +75,9 @@ internal/
   download/                  resumable HTTP fetch
   engine/                    whisper.cpp wrapper, split across a build tag
   mcp/                       the MCP server: skeleton ported from image-forge,
+                             workdir/ resolves the caller's work directory
+                             (ADR-0010: argument, then request _meta, then an
+                             error — never a server-owned default),
                              plus tools/ (four tools and their usage.md)
   store/                     the installed-model registry
   transcript/                output envelope, formatters, language merging

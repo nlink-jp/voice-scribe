@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"github.com/nlink-jp/voice-scribe/internal/audio"
@@ -15,12 +14,13 @@ import (
 	"github.com/nlink-jp/voice-scribe/internal/transcript"
 )
 
-// defaultWorkspaceRoot is where workspaces live when the agent does not prepare
-// one of its own. It sits beside the models rather than in the config
-// directory: these are working files, sometimes large ones.
-func defaultWorkspaceRoot() string {
+// serverDataDir is this server's own data directory (the model store). It is
+// refused as a work directory: a caller naming it would have the server write
+// transcripts in among the models, and the point of the work directory is that
+// it is the caller's, not ours (ADR-0010).
+func serverDataDir() string {
 	env := config.OSEnv()
-	return filepath.Join(store.DefaultDataDir(env.Getenv, env.Home), "mcp-workspaces")
+	return store.DefaultDataDir(env.Getenv, env.Home)
 }
 
 // mcpTranscriber adapts the CLI's transcription path to the MCP tool interface.

@@ -23,11 +23,11 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			"who is speaking (diarize) and adds an English translation (translate).",
 		InputSchema: json.RawMessage(`{
   "type": "object",
-  "required": ["audio"],
+  "required": ["work_dir", "audio"],
   "properties": {
+    "work_dir": {"type": "string", "description": "Absolute path to a directory you can read back — your session or working directory. The workspace is <work_dir>/<workspace_id>/: recordings are read from there and the transcript is written there, so a directory you cannot open leaves you holding a path to nothing. It must already exist, and nothing here expands ~ or resolves a relative path."},
     "audio": {"type": "string", "description": "Recording path, relative to the workspace"},
-    "workspace_root": {"type": "string", "description": "Absolute path to a workspace root you prepared and can read back. Pass your own session or working directory when you have one: results come back as paths, so a workspace you cannot open leaves you holding a path to nothing."},
-    "workspace_id": {"type": "string", "description": "Workspace within the root; defaults to \"default\""},
+    "workspace_id": {"type": "string", "description": "Workspace within work_dir; defaults to \"default\""},
     "model": {"type": "string", "description": "Installed model name; omit to pick one from language"},
     "language": {"type": "string", "description": "ISO 639-1 code; omit to detect"},
     "translate": {"type": "boolean", "description": "Also produce English; costs a second decode"},
@@ -48,7 +48,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 	}, func(ctx context.Context, args json.RawMessage) (any, error) {
 		var in struct {
 			Audio            string   `json:"audio"`
-			WorkspaceRoot    string   `json:"workspace_root"`
+			WorkDir          string   `json:"work_dir"`
 			WorkspaceID      string   `json:"workspace_id"`
 			Model            string   `json:"model"`
 			Language         string   `json:"language"`
@@ -81,10 +81,15 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			format = f
 		}
 
+		workDir, err := d.WorkDir.Resolve(ctx, in.WorkDir)
+		if err != nil {
+			return nil, err
+		}
+
 		if in.WorkspaceID == "" {
 			in.WorkspaceID = "default"
 		}
-		ws, err := d.WS.EnsureIn(in.WorkspaceRoot, in.WorkspaceID)
+		ws, err := d.WS.EnsureUnder(workDir, in.WorkspaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -156,14 +161,15 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
 			}
 
 			primary := withSuffix(outRel, files[0].Suffix)
-			out := resultFor(primary, ws.Path(primary), string(format), files[0].Content, threshold, result)
+			out := resultFor(where{WorkDir: workDir, WorkspaceID: ws.ID, Rel: primary, Abs: ws.Path(primary)},
+				string(format), files[0].Content, threshold, result)
 			if len(extra) == 0 {
 				return out, nil
 			}
 			return map[string]any{"transcript": out, "additional_files": extra}, nil
 		})
 
-		return describeJob(jobID, outRel), nil
+		return describeJob(jobID, workDir, ws.ID, outRel), nil
 	})
 }
 

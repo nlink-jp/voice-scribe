@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Breaking: the MCP work directory is now `work_dir`, and it is required.**
+  It replaces `workspace_root` on `transcribe`, and it means what the caller
+  means by it: the absolute path of a directory the caller can read back.
+  Recordings are read from `<work_dir>/<workspace_id>/` and transcripts written
+  there. A call that sends one of the retired names (`workspace_root`,
+  `workspaceRoot`, `workspace_dir`) is refused with `work_dir_required` naming
+  the replacement. This is the reference implementation of the organization's
+  work-directory contract for file-mediated MCP servers — see
+  [ADR-0010](docs/adr/0010-work-dir-contract.md).
+- **The server no longer has a default workspace root.** Omitting the argument
+  used to write under `~/.local/share/voice-scribe/mcp-workspaces`, which no
+  calling agent can read back: the job succeeded and the path it returned could
+  not be opened. There is now no destination the caller did not name, and
+  `~/.local/share/voice-scribe/mcp-workspaces` is no longer used or created
+  (existing contents are left alone; delete them at your leisure).
+- A runtime may supply the directory instead of the model: the server reads
+  `_meta["jp.nlink/work_dir"]` from the `tools/call` request when the argument
+  is absent. The argument always wins.
+- Results echo where they went: `transcribe` acknowledgements and finished
+  results carry the resolved `work_dir` and `workspace_id`.
+
+### Added
+
+- Five error codes that say which part of the contract failed:
+  `work_dir_required`, `work_dir_invalid`, `work_dir_not_found`,
+  `work_dir_not_writable`, `work_dir_denied`. The work directory must already
+  exist (the server does not create it), must be writable, and may not be a
+  system location, the home directory itself, or this server's own data
+  directory.
+
 ## [0.2.2] - 2026-08-31
 
 ### Changed

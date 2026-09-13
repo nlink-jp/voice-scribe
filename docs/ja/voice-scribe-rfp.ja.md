@@ -71,7 +71,7 @@ meeting-notes スキルへ渡す前提とする。
 
 - ローカルの音声・動画ファイル（m4a / mp3 / wav / aiff / caf / mp4 / mov / flac 等）
 - デコードは **AVFoundation を CGO 経由で叩く**（16kHz mono float32 PCM へ変換）
-- MCP 経由では `workspace_root`（絶対パス、省略時 `~/.voice-scribe`）配下に封じ込め
+- MCP 経由では `work_dir`（呼び出しごとの絶対パス、既定なし: 本プロジェクト ADR-0010）配下に封じ込め
   （voice-studio-mcp ADR-0010 と同じ `os.Root` によるカーネル封じ込め）
 
 #### 出力（JSON）
@@ -254,7 +254,7 @@ whisper 系モデルは量子化・言語適性・速度のトレードオフが
 **Phase 2b — MCP サーバー（独立レビュー可）**
 
 - 骨格移植（jsonrpc / transport / mcpserver / toolerr / job(単一 FIFO worker) / workspace）
-- 4 ツール、非同期ジョブ、`workspace_root` + `os.Root` 封じ込め
+- 4 ツール、非同期ジョブ、`work_dir` + `os.Root` 封じ込め
 - 二段返却（inline / file）と閾値の実装
 - `initialize` の `instructions` と `get_usage`（embed した usage.md との整合テスト）
 - ダミー stdio クライアントによる実エンジン E2E

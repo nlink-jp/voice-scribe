@@ -144,3 +144,38 @@ func TestCallUnknownTool(t *testing.T) {
 		t.Fatalf("want unknown tool error, got %v", err)
 	}
 }
+
+// TestRequestMetaReachesTheHandler: `_meta` is how a calling runtime hands a
+// server per-session facts — the work directory above all — without every
+// tool declaring them in its schema (org ADR-021). If the protocol layer drops
+// it, the fallback silently disappears and every call needs the argument.
+func TestRequestMetaReachesTheHandler(t *testing.T) {
+	var got string
+	lines := drive(t, func(s *Server) {
+		s.RegisterTool(Tool{
+			Name:        "echo_meta",
+			Description: "test",
+			InputSchema: json.RawMessage(`{"type":"object","properties":{},"additionalProperties":false}`),
+		}, func(ctx context.Context, _ json.RawMessage) (any, error) {
+			if raw, ok := RequestMeta(ctx)["jp.nlink/work_dir"]; ok {
+				_ = json.Unmarshal(raw, &got)
+			}
+			return map[string]any{"ok": true}, nil
+		})
+	}, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo_meta","arguments":{},"_meta":{"jp.nlink/work_dir":"/work/here"}}}`)
+
+	if len(lines) != 1 {
+		t.Fatalf("want 1 response, got %d: %v", len(lines), lines)
+	}
+	if got != "/work/here" {
+		t.Errorf("handler saw _meta work dir %q, want %q", got, "/work/here")
+	}
+}
+
+// TestRequestMetaIsAbsentWhenNotSent keeps the zero case honest: a handler
+// must be able to tell "no hint" from "empty hint".
+func TestRequestMetaIsAbsentWhenNotSent(t *testing.T) {
+	if m := RequestMeta(context.Background()); m != nil {
+		t.Errorf("RequestMeta on a bare context = %v, want nil", m)
+	}
+}

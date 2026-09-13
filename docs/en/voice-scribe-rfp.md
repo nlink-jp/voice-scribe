@@ -75,9 +75,9 @@ missing, `list_models` and the error paths point at the CLI procedure.
 - Local audio or video files (m4a / mp3 / wav / aiff / caf / mp4 / mov / flac, …)
 - Decoding goes through **AVFoundation via CGO** (converted to 16 kHz mono
   float32 PCM)
-- Over MCP, all I/O is confined under `workspace_root` (absolute path, defaulting
-  to `~/.voice-scribe`) with kernel-level `os.Root` containment — the same design
-  as voice-studio-mcp ADR-0010
+- Over MCP, all I/O is confined under `work_dir` — a per-call absolute path with
+  no default (this project's ADR-0010) — with kernel-level `os.Root`
+  containment, the same design as voice-studio-mcp ADR-0010
 
 #### Output (JSON)
 
@@ -277,7 +277,7 @@ audio file through the CLI.
 
 - Port the skeleton (jsonrpc / transport / mcpserver / toolerr / job (single FIFO
   worker) / workspace)
-- Four tools, async jobs, `workspace_root` + `os.Root` containment
+- Four tools, async jobs, `work_dir` + `os.Root` containment
 - Two-tier return (inline / file) and the threshold
 - `instructions` on `initialize` and `get_usage` (with a consistency test against
   the embedded `usage.md`)
