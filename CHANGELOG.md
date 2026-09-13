@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-09-14
+
+### Fixed
+
+- **`input_not_found` named nothing.** "input %q is not in the workspace —
+  place it there first" does not say where the workspace is, and a real agent
+  (2026-09-14) answered it by inventing `~/sessions/current_session/work`, being
+  denied, fetching `get_usage`, re-recording, and finally passing an absolute
+  path: four rounds to recover from one sentence. The error now names the
+  absolute path it looked at and offers the escape — a recording may be an
+  absolute path to wherever it already is, read in place.
+- The `audio` argument's description says the workspace is
+  `<work_dir>/<workspace_id>/`, **a level below `work_dir` itself**. That is the
+  confusion the agent actually had: it had just set `work_dir`, put the file
+  there, and passed a name relative to it.
+
 ## [0.4.0] - 2026-09-14
 
 ### Changed

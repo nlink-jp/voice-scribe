@@ -30,7 +30,7 @@ func registerTranscribe(srv *mcpserver.Server, d *Deps) {
   "required": ["work_dir", "audio"],
   "properties": {
     "work_dir": {"type": "string", "description": "Absolute path to a directory you can read back — your session or working directory. The workspace is <work_dir>/<workspace_id>/: recordings are read from there and the transcript is written there, so a directory you cannot open leaves you holding a path to nothing. It must already exist, and nothing here expands ~ or resolves a relative path."},
-    "audio": {"type": "string", "description": "Recording to transcribe: a path relative to the workspace, or an absolute path to a recording anywhere you can read \u2014 it is read in place, never copied. Credential and agent-control locations (~/.ssh, ~/.aws and the like) are refused."},
+    "audio": {"type": "string", "description": "Recording to transcribe: a path relative to the workspace (which is <work_dir>/<workspace_id>/, a level below work_dir itself), or an absolute path to a recording anywhere you can read \u2014 it is read in place, never copied. Credential and agent-control locations (~/.ssh, ~/.aws and the like) are refused."},
     "workspace_id": {"type": "string", "description": "Workspace within work_dir; defaults to \"default\""},
     "model": {"type": "string", "description": "Installed model name; omit to pick one from language"},
     "language": {"type": "string", "description": "ISO 639-1 code; omit to detect"},

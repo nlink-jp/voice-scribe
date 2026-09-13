@@ -449,3 +449,28 @@ func isCode(err error, code string) bool {
 	var te *toolerr.Error
 	return errors.As(err, &te) && te.Code == code
 }
+
+// TestMissingAudioErrorNamesThePathAndTheEscape is the regression for what a
+// real agent did with the old message. Told only "place it in the workspace",
+// it invented ~/sessions/current_session/work, was denied, read get_usage,
+// re-made the recording and finally passed an absolute path — four rounds to
+// recover from one sentence that named nothing.
+func TestMissingAudioErrorNamesThePathAndTheEscape(t *testing.T) {
+	h := newHarness(t)
+
+	// The check happens on the call that supplied the argument, not in the
+	// job: a recording that is not there cannot become there later.
+	err := h.callErr(t, "transcribe", map[string]any{
+		"audio":    "not-there.m4a",
+		"work_dir": h.root,
+	})
+	msg := err.Error()
+	// The absolute path it looked at, so the agent can put the file there.
+	if !strings.Contains(msg, filepath.Join(h.wsDir, "not-there.m4a")) {
+		t.Errorf("error does not name the path it looked for: %q", msg)
+	}
+	// The escape, so the agent can point at the file it already has.
+	if !strings.Contains(msg, "absolute path") {
+		t.Errorf("error does not offer the absolute-path escape: %q", msg)
+	}
+}
