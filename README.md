@@ -181,7 +181,9 @@ transcript comes back inline and a long one as a file path with an excerpt; the
 file is written either way.
 
 Every call names `work_dir`: the absolute path of a directory the agent can read
-back, which is where recordings are read from and transcripts are written. It is
+back, which is where transcripts are written. A recording may sit there, or be
+named by an absolute path anywhere readable — it is read in place, never copied,
+and only credential locations such as `~/.ssh` are refused. `work_dir` is
 required and has no default — a transcript written where the caller cannot open
 it is a successful call and a useless one. Every path is confined to that
 directory by the kernel. `get_usage` returns the full manual; agents should call

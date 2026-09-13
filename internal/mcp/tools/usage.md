@@ -36,10 +36,18 @@ set `_meta["jp.nlink/work_dir"]` on the call instead of you passing it).
 If you pass `workspace_root`, `workspaceRoot` or `workspace_dir`, the call is
 refused: those are the old names for this argument.
 
-Paths in arguments are always **relative to the workspace**. Absolute paths and
-paths escaping the workspace are refused with `path_not_allowed`, and so are
-symlinks pointing outside it — containment is enforced by the kernel, not by
+Transcript paths and other workspace files are named **relative to the
+workspace**. A relative path escaping it is refused with `path_not_allowed`, and
+so is a symlink pointing outside — containment is enforced by the kernel, not by
 string matching.
+
+`audio` is the exception, and deliberately: it may be **an absolute path to a
+recording anywhere you can read**, and it is read in place, never copied —
+copying an hour of audio into the workspace to transcribe it would be waste.
+What is refused there is a credential or agent-control location (`~/.ssh`,
+`~/.aws`, `~/.gnupg`, `~/.config/gcloud`, `~/Library/Keychains`, `~/.claude`,
+`~/.codex`, any `.env`), checked on the path as given and on its
+symlink-resolved form. The transcript still lands in the workspace either way.
 
 ## Tools
 

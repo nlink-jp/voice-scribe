@@ -30,6 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Results echo where they went: `transcribe` acknowledgements and finished
   results carry the resolved `work_dir` and `workspace_id`.
 
+- `audio` may now be **an absolute path to a recording anywhere you can read**.
+  It is read in place and never copied, since staging an hour of audio into the
+  workspace to transcribe it is waste and the caller could have read the file
+  itself. Credential and agent-control locations (`~/.ssh`, `~/.aws`,
+  `~/.gnupg`, `~/.config/gcloud`, `~/Library/Keychains`, `~/.claude`, `~/.codex`,
+  any `.env`) are refused, checked on the path as given and on its
+  symlink-resolved form — resolving alone walks past a link such as
+  `~/.ssh/config` that points into a cloud-sync folder. Relative paths are
+  workspace-relative as before, with kernel-enforced containment. Transcripts
+  still land in the workspace.
+
 ### Added
 
 - Five error codes that say which part of the contract failed:

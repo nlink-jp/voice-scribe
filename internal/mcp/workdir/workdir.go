@@ -1,21 +1,21 @@
-// Package workdir resolves the directory one MCP call writes into: the
-// caller's work directory, not the server's.
+// Package workdir resolves the directory one MCP call writes into — the
+// caller's work directory, not this server's — and holds the blacklist of
+// locations a caller may never point a tool at.
 //
-// The value is per session and per calling runtime, so the server cannot
-// know it — only the caller can. Of the channels a runtime could use, the
-// per-call argument is the only one all four of our callers have: MCP roots
-// are empty from Codex and carry only the project directory from Claude
-// Code, and Codex strips the environment before spawning a server, so a
-// `${...}` expansion in a registration entry never arrives. The `_meta` key
-// is the second channel, for the runtimes we write ourselves: they can set
-// it on every tools/call without knowing any tool's schema.
+// The value is per session and per calling runtime, so the server cannot know
+// it; only the caller can. Of the channels a runtime could use, the per-call
+// argument is the only one all four of our callers have: MCP roots come back
+// empty from Codex and carry only the project directory from Claude Code, and
+// Codex strips the environment before spawning a server, so a `${...}`
+// expansion in a registration entry never arrives. The `_meta` key is the
+// second channel, for the runtimes we write ourselves: they can set it on
+// every tools/call without knowing any tool's schema.
 //
-// There is deliberately no fallback beyond those two. A server-chosen
-// default is readable by the caller only by coincidence, and when it is not,
-// the call still succeeds and returns a path to a file the caller cannot
-// open — a failure with no symptom at the point it happens.
+// There is deliberately no third. A server-chosen default is readable by the
+// caller only by coincidence, and when it is not, the call still succeeds and
+// returns a path to a file the caller cannot open.
 //
-// Org ADR-021; project ADR-0010.
+// Organization ADR-021; project ADR-0010.
 package workdir
 
 import (
@@ -30,8 +30,8 @@ import (
 	"github.com/nlink-jp/voice-scribe/internal/mcp/toolerr"
 )
 
-// MetaKey is the request-level `_meta` key a runtime sets on every
-// tools/call to name the session work directory.
+// MetaKey is the request-level `_meta` key a runtime sets on every tools/call
+// to name the session work directory.
 const MetaKey = "jp.nlink/work_dir"
 
 // Access mode bits for syscall.Access. Creating a workspace under the work
@@ -42,12 +42,9 @@ const (
 )
 
 // deniedTrees are locations a work directory may never be, together with
-// everything under them. They are the paths this server would be writing to
-// on behalf of a model that named them, with the operator's own privileges
-// and outside whatever sandbox the calling runtime applies to itself.
-//
-// Paths are in resolved form (/etc and /var are symlinks on darwin), because
-// validation resolves symlinks before comparing.
+// everything under them: this server would be writing there on behalf of a
+// model that named them, with the operator's privileges. Paths are in resolved
+// form (/etc and /var are symlinks on darwin).
 var deniedTrees = []string{
 	"/bin",
 	"/sbin",
@@ -66,18 +63,38 @@ var deniedExact = []string{
 	"/private/var",
 }
 
-// Resolver resolves and validates work directories. The zero value is
-// usable; Denied adds server-specific trees to the built-in list.
+// sensitiveHomeTrees are the input blacklist: locations that hold credentials
+// or steer an agent, which no tool argument may point at however the caller
+// asks (ADR-0008 §4). They are relative to the home directory.
+//
+// This list is a floor, not a boundary. The next secret file is not on it.
+// Bounding what this process may touch at all is a sandboxing MCP proxy's job.
+// It lives in code rather than config on purpose: a knob here would recreate
+// the hand-maintained model of the calling runtimes that ADR-0008 removed.
+var sensitiveHomeTrees = []string{
+	".ssh",
+	".aws",
+	".gnupg",
+	".config/gcloud",
+	".config/gem-agent",
+	".config/lagent",
+	".claude",
+	".codex",
+	"Library/Keychains",
+}
+
+// Resolver resolves and validates work directories. The zero value is usable;
+// Denied adds server-specific trees to the built-in list.
 type Resolver struct {
 	// Denied are extra absolute paths (and their subtrees) this server
-	// refuses to treat as a work directory — its own data or config
-	// directory, typically.
+	// refuses to treat as a work directory — its own data directory,
+	// typically.
 	Denied []string
 }
 
 // Resolve returns the validated work directory for one call: the tool's
-// work_dir argument, else the runtime hint in the request's `_meta`, else
-// an error. The returned path is absolute and symlink-resolved.
+// work_dir argument, else the runtime hint in the request's `_meta`, else an
+// error. The returned path is absolute and symlink-resolved.
 func (r Resolver) Resolve(ctx context.Context, arg string) (string, error) {
 	dir := strings.TrimSpace(arg)
 	if dir == "" {
@@ -123,9 +140,9 @@ func (r Resolver) Validate(dir string) (string, error) {
 		return "", toolerr.Newf(toolerr.CodeWorkDirNotFound, "work_dir %q is not a directory", dir)
 	}
 
-	if why := r.denied(resolved); why != "" {
-		return "", toolerr.Newf(toolerr.CodeWorkDirDenied,
-			"work_dir %q is refused: %s", dir, why)
+	if why := r.denied(dir, resolved); why != "" {
+		return "", toolerr.Newf(toolerr.CodeWorkDirDenied, "work_dir %q is refused: %s", dir, why).
+			WithDetails(map[string]any{"work_dir": dir, "resolved": resolved})
 	}
 	if err := syscall.Access(resolved, wOK|xOK); err != nil {
 		return "", toolerr.Newf(toolerr.CodeWorkDirNotWritable,
@@ -134,8 +151,80 @@ func (r Resolver) Validate(dir string) (string, error) {
 	return resolved, nil
 }
 
-// denied reports why the resolved path may not be a work directory, or "".
-func (r Resolver) denied(resolved string) string {
+// Sensitive reports why a path may not be read on a caller's say-so, or ""
+// when it may be. Callers own the error code, since what an unreadable path
+// means differs per tool.
+//
+// Pass every form of the path you have — as the caller gave it, and its
+// symlink-resolved form. Both are needed, and measurement is why: on this
+// machine ~/.ssh is itself a symlink into a cloud-sync folder, so a resolved
+// path no longer looks like ~/.ssh and a resolve-then-compare check walks
+// straight past the list. Comparing only the unresolved path has the opposite
+// hole — a link planted in an ordinary directory would step through it. Each
+// form of the path is checked against each form of every entry.
+func Sensitive(paths ...string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return sensitiveIn(home, paths)
+}
+
+// sensitiveIn is Sensitive with the home directory injected, so the rule can
+// be tested against a constructed home — including one where a blacklisted
+// directory is a symlink, which is the case that was missed.
+func sensitiveIn(home string, paths []string) string {
+	forms := pathForms(paths)
+	for _, p := range forms {
+		if base := filepath.Base(p); base == ".env" || strings.HasPrefix(base, ".env.") {
+			return "a .env file holds credentials"
+		}
+	}
+	for _, rel := range sensitiveHomeTrees {
+		for _, entry := range pathForms([]string{filepath.Join(home, rel)}) {
+			for _, p := range forms {
+				if within(p, entry) {
+					return "~/" + rel + " holds credentials or agent control files"
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// pathForms expands paths into every spelling worth comparing: absolute and
+// cleaned, plus the symlink-resolved form when it differs.
+func pathForms(paths []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(p string) {
+		if p == "" || seen[p] {
+			return
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+	for _, p := range paths {
+		if p == "" {
+			continue
+		}
+		if abs, err := filepath.Abs(p); err == nil {
+			add(filepath.Clean(abs))
+		} else {
+			add(filepath.Clean(p))
+		}
+		if resolved, err := filepath.EvalSymlinks(p); err == nil {
+			if abs, aerr := filepath.Abs(resolved); aerr == nil {
+				add(filepath.Clean(abs))
+			}
+		}
+	}
+	return out
+}
+
+// denied reports why the path may not be a work directory, or "". It takes the
+// path as given and resolved, for the reason Sensitive documents.
+func (r Resolver) denied(raw, resolved string) string {
 	home, err := os.UserHomeDir()
 	if err == nil {
 		if h, herr := filepath.EvalSymlinks(home); herr == nil {
@@ -154,6 +243,9 @@ func (r Resolver) denied(resolved string) string {
 		if within(resolved, d) {
 			return "it is inside the system directory " + d
 		}
+	}
+	if why := Sensitive(raw, resolved); why != "" {
+		return why
 	}
 	for _, d := range r.Denied {
 		if d == "" {
@@ -189,8 +281,8 @@ func hasParentSegment(p string) bool {
 
 // metaHint reads the work directory a runtime attached to the request. A
 // present but non-string value is an error rather than a silent miss: a
-// runtime that sets the key wrongly should hear about it once, not have
-// every call fall through to "work_dir is required".
+// runtime that sets the key wrongly should hear about it once, not have every
+// call fall through to "work_dir is required".
 func metaHint(ctx context.Context) (string, error) {
 	raw, ok := mcpserver.RequestMeta(ctx)[MetaKey]
 	if !ok {
@@ -198,8 +290,7 @@ func metaHint(ctx context.Context) (string, error) {
 	}
 	var dir string
 	if err := json.Unmarshal(raw, &dir); err != nil {
-		return "", toolerr.Newf(toolerr.CodeWorkDirInvalid,
-			"request _meta[%q] is not a string", MetaKey)
+		return "", toolerr.Newf(toolerr.CodeWorkDirInvalid, "request _meta[%q] is not a string", MetaKey)
 	}
 	return strings.TrimSpace(dir), nil
 }

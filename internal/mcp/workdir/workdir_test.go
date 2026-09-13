@@ -176,3 +176,86 @@ func resolve(t *testing.T, dir string) string {
 	}
 	return got
 }
+
+// TestSensitiveNamesTheCredentialLocations covers the input blacklist, which
+// this server is the first to need: pcap_path is an absolute host path, so the
+// floor has to hold here or it holds nowhere.
+func TestSensitiveNamesTheCredentialLocations(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skipf("no home directory: %v", err)
+	}
+	if h, herr := filepath.EvalSymlinks(home); herr == nil {
+		home = h
+	}
+	for _, rel := range []string{".ssh", ".ssh/id_rsa", ".aws/credentials", ".gnupg", ".config/gcloud/x", ".claude/settings.json", ".codex/auth.json", "Library/Keychains/login.keychain-db"} {
+		if why := Sensitive(filepath.Join(home, rel)); why == "" {
+			t.Errorf("Sensitive(~/%s) = \"\", want a reason", rel)
+		}
+	}
+	for _, p := range []string{filepath.Join(home, "Downloads", "capture.pcapng"), "/private/tmp/x.pcap"} {
+		if why := Sensitive(p); why != "" {
+			t.Errorf("Sensitive(%q) = %q, want it accepted", p, why)
+		}
+	}
+}
+
+func TestSensitiveCatchesDotEnvAnywhere(t *testing.T) {
+	for _, p := range []string{"/srv/app/.env", "/srv/app/.env.production"} {
+		if why := Sensitive(p); why == "" {
+			t.Errorf("Sensitive(%q) = \"\", want a reason", p)
+		}
+	}
+	if why := Sensitive("/srv/app/environment.csv"); why != "" {
+		t.Errorf("a file merely starting with 'env' must be accepted, got %q", why)
+	}
+}
+
+// A sibling directory must not be admitted by prefix alone: /data-evil is not
+// inside /data. The allowlist this replaced had the same property and a test
+// for it; the property moved, so the test moves with it.
+func TestWithinDoesNotAdmitSiblings(t *testing.T) {
+	if within("/data-evil/c.pcap", "/data") {
+		t.Error("/data must not admit /data-evil")
+	}
+	if !within("/data/c.pcap", "/data") || !within("/data", "/data") {
+		t.Error("/data must admit itself and its children")
+	}
+}
+
+// TestSensitiveWhenTheBlacklistedTreeIsItselfASymlink is the case that was
+// missed until the server was driven for real: on this machine ~/.ssh is a
+// symlink into a cloud-sync folder, so resolving the path first made it stop
+// looking like ~/.ssh and the check passed a private key straight through.
+func TestSensitiveWhenTheBlacklistedTreeIsItselfASymlink(t *testing.T) {
+	home := t.TempDir()
+	real := filepath.Join(t.TempDir(), "synced-ssh")
+	if err := os.MkdirAll(real, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, filepath.Join(home, ".ssh")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	key := filepath.Join(real, "id_rsa")
+	if err := os.WriteFile(key, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Named through the link, and named at its real location: both refused.
+	viaLink := filepath.Join(home, ".ssh", "id_rsa")
+	if why := sensitiveIn(home, []string{viaLink}); why == "" {
+		t.Error("a key named through the ~/.ssh symlink must be refused")
+	}
+	if why := sensitiveIn(home, []string{key}); why == "" {
+		t.Error("a key named at the symlink's target must be refused")
+	}
+	// And the other direction still holds: a link planted elsewhere that
+	// points into the tree is refused too.
+	planted := filepath.Join(t.TempDir(), "innocent.pcap")
+	if err := os.Symlink(key, planted); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if why := sensitiveIn(home, []string{planted}); why == "" {
+		t.Error("a planted link into the blacklisted tree must be refused")
+	}
+}

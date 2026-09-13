@@ -264,23 +264,74 @@ func TestTranscribeArgumentsReachTheEngine(t *testing.T) {
 	}
 }
 
-// TestPathsAreConfinedToTheWorkspace covers the containment boundary from the
-// argument side; workspace's own tests cover the kernel-enforced half.
-func TestPathsAreConfinedToTheWorkspace(t *testing.T) {
+// TestRelativePathsAreConfinedToTheWorkspace covers the containment boundary
+// from the argument side; workspace's own tests cover the kernel-enforced half.
+func TestRelativePathsAreConfinedToTheWorkspace(t *testing.T) {
 	h := newHarness(t)
-	for name, audio := range map[string]string{
-		"absolute": "/etc/passwd",
-		"escaping": "../../etc/passwd",
-	} {
-		t.Run(name, func(t *testing.T) {
-			err := h.callErr(t, "transcribe", map[string]any{
-				"audio":    audio,
-				"work_dir": h.root,
-			})
-			if !isCode(err, toolerr.CodePathNotAllowed) {
-				t.Errorf("err = %v, want path_not_allowed", err)
-			}
-		})
+	err := h.callErr(t, "transcribe", map[string]any{
+		"audio":    "../../etc/passwd",
+		"work_dir": h.root,
+	})
+	if !isCode(err, toolerr.CodePathNotAllowed) {
+		t.Errorf("err = %v, want path_not_allowed", err)
+	}
+}
+
+// An absolute recording is read where it lies rather than staged: the caller
+// could have read it itself, and copying an hour of audio in to transcribe it
+// would be pure waste (org ADR-021 §7).
+func TestAnAbsoluteRecordingIsReadInPlace(t *testing.T) {
+	h := newHarness(t)
+	outside := filepath.Join(t.TempDir(), "interview.m4a")
+	if err := os.WriteFile(outside, []byte("not really audio"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	st := h.await(t, h.call(t, "transcribe", map[string]any{
+		"audio":    outside,
+		"work_dir": h.root,
+		"format":   "text",
+	}))
+	if st.State != job.StateDone {
+		t.Fatalf("job state %s: %v", st.State, st.Error)
+	}
+	// The resolved spelling is what the decoder gets: resolution happens once,
+	// at the boundary, and the rest of the server works with the real path.
+	want, err := filepath.EvalSymlinks(outside)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.fake.seen.Audio != want {
+		t.Errorf("decoder was handed %q, want the recording where it lies (%q)", h.fake.seen.Audio, want)
+	}
+	res := st.Result.(Result)
+	// The transcript still lands in the workspace, named after the recording.
+	if res.Path != filepath.Join("output", "interview.text") {
+		t.Errorf("Path = %q, want it under output/ named after the recording", res.Path)
+	}
+}
+
+// The floor under that: a recording named in a credential location is refused,
+// whichever way it is spelled.
+func TestAnAbsoluteRecordingInACredentialLocationIsRefused(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	ssh := filepath.Join(home, ".ssh")
+	if err := os.MkdirAll(ssh, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	secret := filepath.Join(ssh, "notes.m4a")
+	if err := os.WriteFile(secret, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	h := newHarness(t)
+	err := h.callErr(t, "transcribe", map[string]any{
+		"audio":    secret,
+		"work_dir": h.root,
+	})
+	if !isCode(err, toolerr.CodePathNotAllowed) {
+		t.Errorf("err = %v, want path_not_allowed", err)
 	}
 }
 
