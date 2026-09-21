@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.5] - 2026-09-21
 
 ### Added
 
@@ -36,6 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (apache-2.0) and `snakers4/silero-vad` (mit) are each fetched from a mirror
   too, so all three had the shape that produced the defect; all three were
   already correct.
+- **`make verify-release` failed open.** Its third block was the template's
+  `a && b && c | head -2 || true` shape, and `||` binds the whole `&&` list to
+  its left, so the `|| true` meant for the informational `spctl` lookup
+  swallowed the unzip and the `--version` run with it. Measured against the old
+  recipe: a zip that does not unpack, a packaged binary that cannot start, and
+  a zip holding a build from another tag all passed with exit 0. The gate is
+  now the fail-closed form from the organization's conventions, and this
+  release is the first verified by it.
 
 ## [0.4.4] - 2026-09-21
 
