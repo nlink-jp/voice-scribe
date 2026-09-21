@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   then verified by real path; a workspace whose name resolves elsewhere is
   refused with `path_not_allowed`, naming the id and what it resolved to.
 
+### Documentation
+
+- **The ADR log is bilingual, with Japanese as the source of truth.** The
+  eleven records were written in Japanese. 43f2988 moved them to `docs/en/adr/`
+  on the stated premise that the log was "English only" — it never was, so the
+  move filed Japanese prose under `docs/en/`. 83719a5 put the records back at
+  `docs/ja/adr/NNNN-slug.ja.md`, ace4af2 added the English translations at
+  `docs/en/adr/NNNN-slug.md`, and every reference now points at the reader's own
+  language. Measurements, identifiers, paths, flags and quoted output are
+  verbatim across each pair; the Japanese record is what a decision is recorded
+  in, and the English one follows it.
+
 ## [0.4.3] - 2026-09-14
 
 ### Added
