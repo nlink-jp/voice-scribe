@@ -84,7 +84,8 @@ internal/
 third_party/whisper.cpp/     submodule (ggml-org/whisper.cpp)
 third_party/sherpa-onnx/     submodule (k2-fsa/sherpa-onnx), pinned to a release tag
 docs/{en,ja}/                RFP and guides; ja is the source of truth
-docs/ja/adr/                 architecture decision records (Japanese is canonical here)
+docs/ja/adr/                 architecture decision records; ja is the source of truth
+docs/en/adr/                 their English translations, one per record
 scripts/                     codesign / notarize / homebrew, from org templates
 ```
 

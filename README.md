@@ -105,7 +105,7 @@ lower character error rate on JSUT and on ReazonSpeech, and loses to
 `kotoba-whisper-v2.0` on Common Voice by a margin too small to call. The
 comparison, including what was measured on a 39-minute recording with
 continuous background music, is in
-[docs/ja/adr/0008-japanese-default-model.ja.md](docs/ja/adr/0008-japanese-default-model.ja.md) (Japanese; this repository's records are written in Japanese).
+[docs/en/adr/0008-japanese-default-model.md](docs/en/adr/0008-japanese-default-model.md).
 
 `kotoba-whisper-v2.0` is still in the catalog; `--model` reaches it. A
 `default_model` already written to your config file is not touched by the change

@@ -76,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   result carries as much text as the cap allows, `truncated` and `omitted_bytes`
   say exactly what it left out, `bytes` stays the full size, and `path` /
   `absolute_path` reach all of it. See
-  [ADR-0011](docs/ja/adr/0011-response-cap-not-delivery-mode.md).
+  [ADR-0011](docs/en/adr/0011-response-cap-not-delivery-mode.md).
 - **The transcript file is written either way, as before.** It is this server's
   product — an srt you hand to a video player, a json a downstream tool reads —
   so `work_dir` stays required (ADR-0010). The cap never decides whether the
@@ -123,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `workspaceRoot`, `workspace_dir`) is refused with `work_dir_required` naming
   the replacement. This is the reference implementation of the organization's
   work-directory contract for file-mediated MCP servers — see
-  [ADR-0010](docs/ja/adr/0010-work-dir-contract.md).
+  [ADR-0010](docs/en/adr/0010-work-dir-contract.md).
 - **The server no longer has a default workspace root.** Omitting the argument
   used to write under `~/.local/share/voice-scribe/mcp-workspaces`, which no
   calling agent can read back: the job succeeded and the path it returned could
@@ -168,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.1] - 2026-08-27
 
 Two VAD defects reported against v0.2.0, fixed together because the second was
-hiding behind the first — see [ADR-0009](docs/ja/adr/0009-vad-offset-composition.md).
+hiding behind the first — see [ADR-0009](docs/en/adr/0009-vad-offset-composition.md).
 
 ### Fixed
 
@@ -212,7 +212,7 @@ warning for that failure ships in the same release.
   margin too small to call, and ahead on the corpus kotoba-whisper was trained
   on. `kotoba-whisper-v2.0` stays in the catalog and `--model` still reaches it.
   A `default_model` already written to a config file is left alone. See
-  [ADR-0008](docs/ja/adr/0008-japanese-default-model.md).
+  [ADR-0008](docs/en/adr/0008-japanese-default-model.md).
 
 ### Added
 
@@ -393,7 +393,7 @@ machine.
 
 - Project scaffold following the org conventions: cobra command tree, Makefile
   with `build` / `build-engine` / `package`, MIT LICENSE, bilingual README,
-  `config.example.toml`, `docs/{en,ja}` and `docs/ja/adr/`.
+  `config.example.toml`, `docs/{en,ja}` and an ADR log.
 - `third_party/whisper.cpp` as a submodule, with `make deps` building it into
   static libraries (Metal backend, embedded shader library).
 - `internal/engine`: runtime wrapper split across the `cgo_whisper` build tag,

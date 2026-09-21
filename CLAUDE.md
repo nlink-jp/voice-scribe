@@ -31,7 +31,8 @@ The org checklist applies in full. The items that bite most often here:
 - [ ] README.md **and** README.ja.md updated in the same commit as behaviour changes
 - [ ] CHANGELOG.md entry added
 - [ ] AGENTS.md still describes reality (structure, build commands, gotchas)
-- [ ] Non-obvious design decisions recorded as an ADR in `docs/ja/adr/` (Japanese, `.ja.md`) **before**
-      implementing
+- [ ] Non-obvious design decisions recorded as an ADR **before** implementing —
+      written in `docs/ja/adr/NNNN-slug.ja.md` (the source of truth) and translated
+      in `docs/en/adr/NNNN-slug.md` in the same commit
 - [ ] No absolute paths, machine-local identifiers, or personal directory names
       in anything committed
