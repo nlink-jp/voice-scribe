@@ -102,6 +102,20 @@ write lands outside `work_dir` while reporting success.
 is afterwards passed to `os.OpenRoot` and, for the recording, to the decoder.
 `TestEnsureUnderRefusesLinkedWorkspaceDir` pins it.
 
+**A catalog entry's `Repo` is not where its weights came from, and its licence
+never comes from `Repo`.** Every entry is fetched from a conversion or a mirror
+(`ggerganov/whisper.cpp`, `csukuangfj/...`, `ggml-org/whisper-vad`), and such a
+repo's own licence says nothing about the weights inside it. `WeightsRepo` names
+the publisher and is where `License` was read from; it is required, and
+`TestEveryEntryIsComplete` fails on an empty one or one equal to `Repo`.
+`TestLicenceProvenanceIsPinned` pins the pair per entry, because a licence
+cannot be rechecked from a test. **The family is not uniform**: three entries
+share `ggerganov/whisper.cpp` and do not share a licence —
+`openai/whisper-large-v3-turbo` is mit while `openai/whisper-large-v3` and
+`openai/whisper-base` are apache-2.0. Tidying them into agreement is the
+regression the pin guards; taking `mit` from the conversion repo is what shipped
+two entries under terms that were not theirs.
+
 **stdout is the transport.** `voice-scribe mcp` speaks JSON-RPC over stdout,
 and `transcribe` writes the transcript there, so everything else —
 progress, runtime logs, warnings — goes to stderr. `engine.SetLogHandler` exists

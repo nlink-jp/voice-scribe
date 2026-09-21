@@ -103,6 +103,7 @@ type catalogView struct {
 	Quantization string `json:"quantization,omitempty"`
 	SizeBytes    int64  `json:"size_bytes"`
 	License      string `json:"license"`
+	WeightsRepo  string `json:"weights_repo"`
 	Role         string `json:"role,omitempty"`
 	Installed    bool   `json:"installed"`
 }
@@ -185,7 +186,7 @@ func catalogViewOf(e catalog.Entry, installed bool) catalogView {
 	return catalogView{
 		Name: e.Name, Kind: string(e.Kind), Description: e.Description, Language: e.Language,
 		Quantization: e.Quantization, SizeBytes: e.SizeBytes, License: e.License,
-		Role: string(e.Role), Installed: installed,
+		WeightsRepo: e.WeightsRepo, Role: string(e.Role), Installed: installed,
 	}
 }
 

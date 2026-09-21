@@ -10,13 +10,13 @@
 // Sizes and licenses are recorded rather than guessed; when adding an entry,
 // check the source rather than copying a neighbour's values.
 //
-// For License that source is the model card of the *weights*, which is not
-// always the repository named in Repo: three entries here are fetched from
-// ggerganov/whisper.cpp, a conversion repo that declares license: mit for its
-// own code and ggml files. The weights it converted carry their own terms, and
-// they are not uniform even within one vendor -- openai/whisper-large-v3-turbo
-// is mit while openai/whisper-large-v3 and openai/whisper-base are apache-2.0.
-// Each entry names the weights it came from next to its License.
+// For License that source is the model card of the *weights*, named by
+// WeightsRepo, which is never the repository in Repo for any entry here: every
+// file is fetched from a conversion or a mirror. Three come from
+// ggerganov/whisper.cpp, which declares license: mit for its own code and ggml
+// files -- the weights it converted carry their own terms, and those are not
+// uniform even within one vendor: openai/whisper-large-v3-turbo is mit while
+// openai/whisper-large-v3 and openai/whisper-base are apache-2.0.
 package catalog
 
 import (
@@ -35,9 +35,19 @@ type Entry struct {
 
 	// Repo and File locate the file to download on Hugging Face. For a
 	// converted model this is the conversion repo, not where the weights
-	// originate -- see License.
+	// originate -- that is WeightsRepo.
 	Repo string
 	File string
+
+	// WeightsRepo names who published the weights, and is where License was
+	// read from. It is a Hugging Face repo id, or a host-qualified path when
+	// the weights are not published on Hugging Face.
+	//
+	// It is required, and a test enforces that. Deriving a licence from Repo
+	// shipped two entries under terms that were not theirs: Repo is whoever
+	// converted or mirrored the file, and a conversion repo's own licence says
+	// nothing about the weights inside it.
+	WeightsRepo string
 
 	// Language is the ISO 639-1 code a model is specialised for; empty means
 	// multilingual.
@@ -52,9 +62,8 @@ type Entry struct {
 	// malformed tensor header, so a tampered model is a memory-safety problem
 	// rather than merely a wrong transcript.
 	SHA256 string
-	// License is the licence of the weights, taken from the model card of the
-	// repository that published them -- not from Repo when Repo merely
-	// redistributes a conversion.
+	// License is the licence of the weights, read from WeightsRepo's model
+	// card. Never from Repo.
 	License string
 	// Default marks the entry suggested for its language when nothing is set.
 	Default bool
@@ -128,12 +137,12 @@ var entries = []Entry{
 		Description:  "Japanese-specialised distil-whisper. Ahead of large-v3-turbo on Common Voice, behind it on JSUT and ReazonSpeech.",
 		Repo:         "kotoba-tech/kotoba-whisper-v2.0-ggml",
 		File:         "ggml-kotoba-whisper-v2.0-q5_0.bin",
+		WeightsRepo:  "kotoba-tech/kotoba-whisper-v2.0",
 		Language:     "ja",
 		Quantization: "q5_0",
 		SizeBytes:    537819875,
 		SHA256:       "4a3b92192b5d3578ff854a5876213e2e27af0c2d357492c2d14271e82c303658",
-		// Weights: kotoba-tech/kotoba-whisper-v2.0, which declares apache-2.0.
-		License: "apache-2.0",
+		License:      "apache-2.0",
 	},
 	{
 		Name:         "large-v3-turbo",
@@ -141,12 +150,12 @@ var entries = []Entry{
 		Description:  "Multilingual, and the suggested model for Japanese. Near large-v3 accuracy at roughly half the inference time.",
 		Repo:         "ggerganov/whisper.cpp",
 		File:         "ggml-large-v3-turbo-q5_0.bin",
+		WeightsRepo:  "openai/whisper-large-v3-turbo",
 		Quantization: "q5_0",
 		SizeBytes:    574041195,
 		SHA256:       "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
-		// Weights: openai/whisper-large-v3-turbo, which declares mit -- unlike
-		// the rest of the family. Correct as it stands; do not align it with
-		// its neighbours.
+		// mit, unlike the rest of the whisper family. Correct as it stands; do
+		// not align it with its neighbours.
 		License: "mit",
 		Default: true,
 	},
@@ -156,11 +165,11 @@ var entries = []Entry{
 		Description:  "Multilingual, highest accuracy and the slowest of the three.",
 		Repo:         "ggerganov/whisper.cpp",
 		File:         "ggml-large-v3-q5_0.bin",
+		WeightsRepo:  "openai/whisper-large-v3",
 		Quantization: "q5_0",
 		SizeBytes:    1081140203,
 		SHA256:       "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1",
-		// Weights: openai/whisper-large-v3, which declares apache-2.0.
-		License: "apache-2.0",
+		License:      "apache-2.0",
 	},
 	{
 		Name:         "base",
@@ -168,11 +177,11 @@ var entries = []Entry{
 		Description:  "Multilingual, small and fast. Accuracy is well below the large models; useful for smoke tests.",
 		Repo:         "ggerganov/whisper.cpp",
 		File:         "ggml-base-q5_1.bin",
+		WeightsRepo:  "openai/whisper-base",
 		Quantization: "q5_1",
 		SizeBytes:    59707625,
 		SHA256:       "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
-		// Weights: openai/whisper-base, which declares apache-2.0.
-		License: "apache-2.0",
+		License:      "apache-2.0",
 	},
 	{
 		// Speaker diarization needs two models working together: segmentation
@@ -184,11 +193,11 @@ var entries = []Entry{
 		Description: "Speaker segmentation for --diarize. Pair with an embedding model.",
 		Repo:        "csukuangfj/sherpa-onnx-pyannote-segmentation-3-0",
 		File:        "model.onnx",
+		WeightsRepo: "pyannote/segmentation-3.0",
 		SizeBytes:   5992913,
 		SHA256:      "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
-		// Weights: pyannote/segmentation-3.0, which declares mit. The ONNX
-		// export ships pyannote's own MIT licence, (c) 2022 CNRS. The upstream
-		// Hugging Face repo is gated; this mirror is not.
+		// The ONNX export ships pyannote's own MIT licence, (c) 2022 CNRS. The
+		// upstream Hugging Face repo is gated; this mirror is not.
 		License: "mit",
 		Default: true,
 		Role:    RoleSegmentation,
@@ -199,13 +208,12 @@ var entries = []Entry{
 		Description: "Speaker embedding for --diarize. Trained on Chinese and English; voice identity transfers across languages.",
 		Repo:        "csukuangfj/speaker-embedding-models",
 		File:        "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
+		WeightsRepo: "github.com/modelscope/3D-Speaker",
 		SizeBytes:   28281164,
 		SHA256:      "aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2",
-		// Weights: 3D-Speaker (github.com/modelscope/3D-Speaker), Apache-2.0.
-		// csukuangfj/speaker-embedding-models only redistributes the export.
-		License: "apache-2.0",
-		Default: true,
-		Role:    RoleEmbedding,
+		License:     "apache-2.0",
+		Default:     true,
+		Role:        RoleEmbedding,
 	},
 	{
 		Name:        "silero-vad",
@@ -213,11 +221,10 @@ var entries = []Entry{
 		Description: "Voice-activity detection. Enables --vad, which suppresses hallucinated text over silence.",
 		Repo:        "ggml-org/whisper-vad",
 		File:        "ggml-silero-v5.1.2.bin",
+		WeightsRepo: "github.com/snakers4/silero-vad",
 		SizeBytes:   885098,
 		SHA256:      "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
-		// Weights: snakers4/silero-vad, MIT. ggml-org/whisper-vad only
-		// redistributes the ggml conversion.
-		License: "mit",
+		License:     "mit",
 	},
 }
 

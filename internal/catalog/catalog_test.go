@@ -29,6 +29,12 @@ func TestEveryEntryIsComplete(t *testing.T) {
 			if e.License == "" {
 				t.Error("License is empty")
 			}
+			if e.WeightsRepo == "" {
+				t.Error("WeightsRepo is empty, so nothing records where License was read from")
+			}
+			if e.WeightsRepo == e.Repo {
+				t.Errorf("WeightsRepo == Repo (%q); if the publisher really is the download repo, say so here and delete this check", e.Repo)
+			}
 			if !strings.HasPrefix(e.URL(), "https://huggingface.co/"+e.Repo+"/resolve/main/") {
 				t.Errorf("URL = %q, which does not point into the declared repo", e.URL())
 			}
@@ -178,5 +184,49 @@ func TestKotobaWhisperComesFromItsAuthors(t *testing.T) {
 	}
 	if !strings.HasPrefix(e.Repo, "kotoba-tech/") {
 		t.Errorf("kotoba-whisper comes from %q, not the model's authors", e.Repo)
+	}
+}
+
+// TestLicenceProvenanceIsPinned records what each licence was read from and
+// when. A licence cannot be checked from a test -- the answer lives on a model
+// card behind the network -- so what is pinned instead is the pair, which makes
+// any edit deliberate: change a licence and this fails, naming the repo whose
+// model card has to be consulted again.
+//
+// It exists because two entries shipped under terms that were not theirs. Both
+// were fetched from ggerganov/whisper.cpp and took that repo's mit, while
+// openai/whisper-large-v3 and openai/whisper-base both declare apache-2.0.
+// Note that the three entries sharing that Repo do NOT share a licence: turbo
+// really is mit. A future reader tidying them into agreement is the regression
+// this guards.
+//
+// Verified against the model cards on 2026-09-21.
+func TestLicenceProvenanceIsPinned(t *testing.T) {
+	want := map[string]struct{ weights, license string }{
+		"kotoba-whisper-v2.0":        {"kotoba-tech/kotoba-whisper-v2.0", "apache-2.0"},
+		"large-v3-turbo":             {"openai/whisper-large-v3-turbo", "mit"},
+		"large-v3":                   {"openai/whisper-large-v3", "apache-2.0"},
+		"base":                       {"openai/whisper-base", "apache-2.0"},
+		"pyannote-segmentation-3":    {"pyannote/segmentation-3.0", "mit"},
+		"campplus-speaker-embedding": {"github.com/modelscope/3D-Speaker", "apache-2.0"},
+		"silero-vad":                 {"github.com/snakers4/silero-vad", "mit"},
+	}
+	all := All()
+	if len(all) != len(want) {
+		t.Fatalf("catalog has %d entries, this test pins %d -- a new entry needs its licence read from its own weights", len(all), len(want))
+	}
+	for _, e := range all {
+		w, ok := want[e.Name]
+		if !ok {
+			t.Errorf("%s: no pinned provenance", e.Name)
+			continue
+		}
+		if e.WeightsRepo != w.weights {
+			t.Errorf("%s: WeightsRepo = %q, pinned %q", e.Name, e.WeightsRepo, w.weights)
+		}
+		if e.License != w.license {
+			t.Errorf("%s: License = %q, pinned %q -- re-read %s's model card before changing this",
+				e.Name, e.License, w.license, e.WeightsRepo)
+		}
 	}
 }

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`weights_repo` on every catalog entry**, in `models list --catalog --json`
+  and in the MCP `list_models` catalog scope. It names who published the
+  weights, which is where that entry's licence was read from — never the repo
+  the file is downloaded from. The field is required: `TestEveryEntryIsComplete`
+  fails on an empty one, or on one equal to `Repo`, and
+  `TestLicenceProvenanceIsPinned` pins the (weights repo, licence) pair for all
+  7 entries, so changing a licence fails the build and names the model card to
+  re-read. Nothing pinned these values before, which is why the defect below
+  shipped silently.
+
 ### Fixed
 
 - **`large-v3` and `base` were listed under the wrong licence.** Both carried
@@ -14,20 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the ggml files are fetched from. The weights are OpenAI's and their model
   cards declare `apache-2.0`, so `models list` and `models pull` reported terms
   that were not the ones attached to the model. Checked against the Hugging
-  Face model cards on 2026-09-21; `models list` now shows `apache-2.0` for
-  both.
-- The family is **not uniform**, which is what hid this: `large-v3-turbo` —
-  the default, and the entry anyone spot-checking would look at — really is
-  `mit`. It is unchanged, and now says next to its value why, so it does not
-  get aligned with its neighbours later. `kotoba-whisper-v2.0` was already
-  right. Each entry now names the weights its licence was read from, and the
-  package comment says to take the licence from the weights' model card rather
-  than from the repository the file is downloaded from.
+  Face model cards on 2026-09-21; `models list` now shows `apache-2.0` for both.
+- The family is **not uniform**, which is what hid this: `large-v3-turbo` — the
+  default, and the entry anyone spot-checking would look at — really is `mit`.
+  It is unchanged, and now says next to its value why, so it does not get
+  aligned with its neighbours later. `kotoba-whisper-v2.0` was already right.
 - **All 7 entries were checked against their upstream weights**, not just the
   two that were wrong: `pyannote/segmentation-3.0` (mit), 3D-Speaker
   (apache-2.0) and `snakers4/silero-vad` (mit) are each fetched from a mirror
-  too, and each was already correct. Every entry now records the weights its
-  licence was read from.
+  too, so all three had the shape that produced the defect; all three were
+  already correct.
 
 ## [0.4.4] - 2026-09-21
 
