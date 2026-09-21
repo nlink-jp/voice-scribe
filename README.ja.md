@@ -107,7 +107,7 @@ voice-scribe transcribe meeting.m4a --lang ja --diarize --speaker-hint 田中,�
 この機械で JSUT と ReazonSpeech の文字誤り率が低く、Common Voice では
 `kotoba-whisper-v2.0` に負けますがその差は誤差の範囲です。BGM が全編に入った 39 分の
 音源で測ったことも含め、比較の全体は
-[docs/adr/0008-japanese-default-model.md](docs/adr/0008-japanese-default-model.md)
+[docs/ja/adr/0008-japanese-default-model.ja.md](docs/ja/adr/0008-japanese-default-model.ja.md)
 にあります。
 
 `kotoba-whisper-v2.0` はカタログに残っており `--model` で選べます。**設定ファイルに
@@ -185,7 +185,10 @@ prompt なしでは正しく取れていた行を壊し（prompt 中の語が無
 どこを指しても構いません（その場で読み、コピーしません。`~/.ssh` のような資格情報の
 位置だけは拒否）。`work_dir` は必須で既定値はありません
 （呼び出し側が開けない場所に書かれた転記は、成功した無意味な呼び出しです）。すべてのパスは
-カーネルによってその中に封じ込められます。`get_usage` が完全なマニュアルを返すので、
+カーネルによってその中に封じ込められます。ワークスペースディレクトリ自体も `work_dir`
+配下の実ディレクトリでなければなりません: `<work_dir>/<workspace_id>` にシンボリック
+リンクが仕掛けられていれば、それを辿らずに拒否するので、指定したディレクトリの外に
+転記が書かれることはありません。`get_usage` が完全なマニュアルを返すので、
 エージェントは最初の文字起こしの前に一度呼ぶべきです。
 
 **モデルのダウンロードは意図的に MCP から使えません** — 数百 MB の取得は端末にいる人間の

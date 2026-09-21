@@ -105,7 +105,7 @@ lower character error rate on JSUT and on ReazonSpeech, and loses to
 `kotoba-whisper-v2.0` on Common Voice by a margin too small to call. The
 comparison, including what was measured on a 39-minute recording with
 continuous background music, is in
-[docs/adr/0008-japanese-default-model.md](docs/adr/0008-japanese-default-model.md).
+[docs/en/adr/0008-japanese-default-model.md](docs/en/adr/0008-japanese-default-model.md).
 
 `kotoba-whisper-v2.0` is still in the catalog; `--model` reaches it. A
 `default_model` already written to your config file is not touched by the change
@@ -187,8 +187,11 @@ named by an absolute path anywhere readable — it is read in place, never copie
 and only credential locations such as `~/.ssh` are refused. `work_dir` is
 required and has no default — a transcript written where the caller cannot open
 it is a successful call and a useless one. Every path is confined to that
-directory by the kernel. `get_usage` returns the full manual; agents should call
-it once before their first transcription.
+directory by the kernel, and the workspace directory itself must be a real
+directory under `work_dir`: a symlink planted at `<work_dir>/<workspace_id>` is
+refused rather than followed, so no transcript lands outside the directory you
+named. `get_usage` returns the full manual; agents should call it once before
+their first transcription.
 
 Downloading models is deliberately **not** available over MCP — hundreds of
 megabytes is a decision for whoever is at the terminal. Use
