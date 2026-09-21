@@ -21,7 +21,14 @@ import (
 // this argument across the fleet, and the old spellings never creep back.
 func TestNoToolSchemaCarriesARetiredWorkDirName(t *testing.T) {
 	h := newHarness(t)
-	for _, tool := range h.srv.Tools() {
+	tools := h.srv.Tools()
+	// A floor, not decoration: an empty list passes every assertion below
+	// and the contract reads as kept while nothing was checked.
+	if len(tools) < 4 {
+		t.Fatalf("the registry yielded %d tools, want at least 4 — "+
+			"the harness is broken and this file would pass vacuously", len(tools))
+	}
+	for _, tool := range tools {
 		for _, old := range retiredWorkDirNames {
 			if strings.Contains(string(tool.InputSchema), `"`+old+`"`) {
 				t.Errorf("tool %q declares %q; the name is work_dir", tool.Name, old)
@@ -35,7 +42,14 @@ func TestNoToolSchemaCarriesARetiredWorkDirName(t *testing.T) {
 // contract removes.
 func TestWorkDirIsRequiredWhereverItIsDeclared(t *testing.T) {
 	h := newHarness(t)
-	for _, tool := range h.srv.Tools() {
+	tools := h.srv.Tools()
+	// A floor, not decoration: an empty list passes every assertion below
+	// and the contract reads as kept while nothing was checked.
+	if len(tools) < 4 {
+		t.Fatalf("the registry yielded %d tools, want at least 4 — "+
+			"the harness is broken and this file would pass vacuously", len(tools))
+	}
+	for _, tool := range tools {
 		var schema struct {
 			Required   []string                   `json:"required"`
 			Properties map[string]json.RawMessage `json:"properties"`
@@ -170,7 +184,14 @@ func TestModelFacingTextNamesNoWithdrawnDeliveryMode(t *testing.T) {
 	withdrawn := []string{"inline_threshold", "excerpt", "inline when it is short"}
 	h := newHarness(t)
 	texts := map[string]string{"initialize instructions": Instructions, "usage manual": usageMarkdown}
-	for _, tool := range h.srv.Tools() {
+	tools := h.srv.Tools()
+	// A floor, not decoration: an empty list passes every assertion below
+	// and the contract reads as kept while nothing was checked.
+	if len(tools) < 4 {
+		t.Fatalf("the registry yielded %d tools, want at least 4 — "+
+			"the harness is broken and this file would pass vacuously", len(tools))
+	}
+	for _, tool := range tools {
 		texts["tool "+tool.Name+" description"] = tool.Description
 		texts["tool "+tool.Name+" schema"] = string(tool.InputSchema)
 	}
@@ -194,7 +215,14 @@ func TestModelFacingTextNamesNoWithdrawnDeliveryMode(t *testing.T) {
 // and is blind to this one; JSON Schema itself permits it, so nothing else
 // catches it either.
 func TestEveryRequiredNameIsDeclared(t *testing.T) {
-	for _, tool := range newHarness(t).srv.Tools() {
+	tools := newHarness(t).srv.Tools()
+	// A floor, not decoration: an empty list passes every assertion below
+	// and the contract reads as kept while nothing was checked.
+	if len(tools) < 4 {
+		t.Fatalf("the registry yielded %d tools, want at least 4 — "+
+			"the harness is broken and this file would pass vacuously", len(tools))
+	}
+	for _, tool := range tools {
 		var schema struct {
 			Properties map[string]json.RawMessage `json:"properties"`
 			Required   []string                   `json:"required"`
