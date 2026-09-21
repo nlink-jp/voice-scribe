@@ -11,7 +11,7 @@ the one that has already been ported three times: data-toolbox-mcp → video-stu
 image-forge.
 
 Only **what was decided during implementation** is recorded here. For what the RFP had
-already settled (the tool set, the two-tier return policy, the decision not to expose
+already settled (the tool set, the two-tier return policy — withdrawn by ADR-0011 — the decision not to expose
 `models pull`), see the RFP.
 
 ## Decision
@@ -36,6 +36,12 @@ goes on holding more than 500MB. It can go in **once there is a measurement show
 reload is actually a problem**.
 
 ### The file is always written, even above the two-tier return threshold
+
+> **Partly superseded by ADR-0011 (2026-09-14).** The two-tier return itself
+> (`inline_threshold` and `excerpt`) is gone, replaced by a `max_bytes` cap. Of
+> what this section decided, **"the threshold never decides whether the artifact
+> exists" and "cut at a rune boundary" carry over to ADR-0011 unchanged** — what
+> was withdrawn is the mechanism that returned an excerpt in place of the text.
 
 Whether the return is inline decides only "whether the text comes back along with it".
 **The design does not let the threshold change whether the file exists** — an agent that
@@ -81,6 +87,12 @@ model: kotoba-whisper-v2.2 | segments: 6 | speakers: [田中, 佐藤] | returned
 
 That every line of stdout parses as JSON was confirmed with a transcription actually
 running.
+
+(This measurement was taken while the default model was `kotoba-whisper-v2.2`. ADR-0004,
+the same day, found that entry to be a third-party re-upload **byte-for-byte identical** to
+the author's `kotoba-whisper-v2.0`, dropped it from the catalog, and moved the default to
+`kotoba-whisper-v2.0`. The block above is left as it was measured — it is a record of a
+run, not a description of the current catalog.)
 
 ### usage.md is kept from rotting by a machine check
 

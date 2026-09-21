@@ -94,7 +94,8 @@ cannot be used.
 
 ## Consequences
 
-- All 7 entries in the catalog have a 64-digit SHA256 (fixed by a test)
+- All 7 entries in the catalog — the 8 of the inventory above, less the one
+  duplicate removed — have a 64-digit SHA256 (fixed by a test)
 - That no two entries share a hash is fixed by a test
 - That the default Japanese model comes from `kotoba-tech/` is fixed by a test
 - `models list --json` prints `sha256`, so a user can check it locally

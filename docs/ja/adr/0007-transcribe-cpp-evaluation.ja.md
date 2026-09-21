@@ -1,6 +1,6 @@
 # ADR-0007: transcribe.cpp への乗り換えは保留する（技術的には通った、リリースが無い）
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-12
 
 ## Context
@@ -102,6 +102,8 @@ voice-scribe の実際の用途では、上限があること自体が欠点に�
 そのまま上流に出せる（`spike/transcribe-cpp/kotoba-variant.patch`）。
 
 BF16 1.45 GB → Q5_0 **550 MB**（現行の ggml q5_0 は 537 MB）。
+本節の MB は 10 進。同じファイルを `models list` は 1024 換算で **513 MB** と表示し、
+ADR-0008 はそちらの綴りで書いている（カタログ上は 537,819,875 バイトの 1 つの値）。
 
 同じフィクスチャでの文字起こし比較:
 
@@ -155,7 +157,7 @@ CER は Q8_0 と同一の 8.88% だった。）
 |---|---|---|---|---|---|
 | セグメント時刻 | **segment** | none | none | none | （話者区間のみ） |
 | 一度に扱える長さ | 無制限（内部分割） | **30 秒** | 40 分 | 87 分 | 無制限 |
-| ライセンス | apache-2.0 | FunASR Model License | apache-2.0 | apache-2.0 | NVIDIA Open Model License |
+| ライセンス | **均一でない**（下記） | FunASR Model License | apache-2.0 | apache-2.0 | NVIDIA Open Model License |
 
 voice-scribe の出力エンベロープは時刻を前提にしている — gem-transcribe 互換の
 `segments[]`、SRT / VTT、そして話者分離結果とのマージ。**時刻を出せないエンジンは、
@@ -240,7 +242,13 @@ v0.1.3 から main まで 1 か月で ABI もモデル群も動いており、�
 - **ストリーミング**（`transcribe_stream_*`）は触っていない。
 - **ライセンス**: ライブラリ本体は MIT だが、モデルは揃っていない —
   Sortformer は **NVIDIA Open Model License**、SenseVoice は
-  **FunASR Model Open Source License**、whisper 系と Fun-ASR は apache-2.0。
-  カタログに載せるモデルごとに表示義務を確認すること。なお NVIDIA の model card は
+  **FunASR Model Open Source License**、Fun-ASR は apache-2.0。
+  **whisper 系は 1 つの値にまとまらない**（2026-09-21 に HF モデルカードで確認）:
+  `openai/whisper-large-v3-turbo` は **mit**、`openai/whisper-large-v3` /
+  `openai/whisper-base` / `kotoba-tech/kotoba-whisper-v2.0` は **apache-2.0**。
+  カタログに載せるモデルごとに表示義務を確認すること。
+  **判定は上流の重み配布元のモデルカードで行う。** ggml 変換物を置いている
+  `ggerganov/whisper.cpp` は `license: mit` を宣言しているが、それは変換物と
+  コード側の宣言であって、重みのライセンスを支配しない。なお NVIDIA の model card は
   「非英語では劣化しうる」と明記しているが、本 ADR の日本語 2 話者フィクスチャでは
   劣化は観測されなかった（17.7 秒・5 ターンの小さな標本での話である）。

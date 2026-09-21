@@ -1,6 +1,6 @@
 # ADR-0007: Migrating to transcribe.cpp is deferred (it passed technically; there is no release)
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-12
 
 ## Context
@@ -110,6 +110,9 @@ makes it pass**, and it can go upstream as it is
 (`spike/transcribe-cpp/kotoba-variant.patch`).
 
 BF16 1.45 GB → Q5_0 **550 MB** (the current ggml q5_0 is 537 MB).
+MB is decimal in this section. `models list` renders the same file in units of 1024 as
+**513 MB**, which is the spelling ADR-0008 uses — one value, 537,819,875 bytes in the
+catalog.
 
 Transcription compared on the same fixture:
 
@@ -167,7 +170,7 @@ kotoba at Q5_0 was measured too, and its CER was 8.88%, identical to Q8_0.)
 |---|---|---|---|---|---|
 | Segment times | **segment** | none | none | none | (speaker spans only) |
 | Length handled at once | unlimited (splits internally) | **30 s** | 40 min | 87 min | unlimited |
-| License | apache-2.0 | FunASR Model License | apache-2.0 | apache-2.0 | NVIDIA Open Model License |
+| License | **not uniform** (below) | FunASR Model License | apache-2.0 | apache-2.0 | NVIDIA Open Model License |
 
 voice-scribe's output envelope assumes times — the gem-transcribe-compatible
 `segments[]`, SRT / VTT, and merging with the diarization result. **An engine that
@@ -268,8 +271,14 @@ shape:
 - **Streaming** (`transcribe_stream_*`) has not been touched.
 - **Licensing**: the library itself is MIT, but the models are not uniform —
   Sortformer is **NVIDIA Open Model License**, SenseVoice is
-  **FunASR Model Open Source License**, and the whisper family and Fun-ASR are
-  apache-2.0. Check the attribution obligation for each model put in the catalog.
+  **FunASR Model Open Source License**, and Fun-ASR is apache-2.0.
+  **The whisper family does not collapse to one value** (checked against the Hugging Face
+  model cards on 2026-09-21): `openai/whisper-large-v3-turbo` is **mit**, while
+  `openai/whisper-large-v3`, `openai/whisper-base` and `kotoba-tech/kotoba-whisper-v2.0`
+  are **apache-2.0**. Check the attribution obligation for each model put in the catalog.
+  **Derive it from the model card of the upstream weights.** `ggerganov/whisper.cpp`, which
+  hosts the ggml conversions, declares `license: mit`, but that covers the conversion and
+  the code — it does not govern the weights.
   Note that NVIDIA's model card states outright that "quality may degrade for
   non-English", but no degradation was observed on this ADR's two-speaker Japanese
   fixture (this is a small sample of 17.7 seconds and 5 turns).

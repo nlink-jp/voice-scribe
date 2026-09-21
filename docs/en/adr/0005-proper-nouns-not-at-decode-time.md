@@ -130,7 +130,7 @@ transcription — C and E are the reason.
   downstream that holds the context
 - **Pre-processing does not fix it either.** Source separation was measured and the name did
   not change (ADR-0006). Proper nouns are not a problem on the acoustic side
-- The mention of grammar in AGENTS.md needs correcting (replace it with a link to this ADR)
+- The mention of grammar in AGENTS.md **has been corrected** (replaced with a link to this ADR)
 - Investigation in the direction of "constraining the vocabulary at decode time" stops
   here. So that the same road is not walked again, the conditions that had no effect (B and
   D) are left in the table above
