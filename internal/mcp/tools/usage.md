@@ -39,7 +39,9 @@ refused: those are the old names for this argument.
 Transcript paths and other workspace files are named **relative to the
 workspace**. A relative path escaping it is refused with `path_not_allowed`, and
 so is a symlink pointing outside — containment is enforced by the kernel, not by
-string matching.
+string matching. The workspace directory itself is checked the same way: if
+`<work_dir>/<workspace_id>` is a symlink rather than a real directory, the call
+is refused instead of silently working somewhere else.
 
 `audio` is the exception, and deliberately: it may be **an absolute path to a
 recording anywhere you can read**, and a relative name is looked for in the
@@ -187,7 +189,7 @@ Every failure carries a stable `code` you can branch on.
 |---|---|---|
 | `missing_argument` | A required argument was absent | Read the message; it names the argument |
 | `invalid_arguments` | Unknown or mistyped argument | Arguments are strict — check the spelling against the schema |
-| `path_not_allowed` | Path was absolute, escaped the workspace, or was a symlink out of it | Use a workspace-relative path to a real file |
+| `path_not_allowed` | Path was absolute, escaped the workspace, was a symlink out of it, or the workspace directory was itself a symlink | Use a workspace-relative path to a real file, and a `workspace_id` that is a real directory under `work_dir` |
 | `work_dir_required` | No `work_dir` argument, and your runtime set no `_meta` hint (or you sent one of the old names) | Pass the absolute path of a directory you can read back |
 | `work_dir_invalid` | Not absolute, started with `~`, or contained `..` | Pass the path you mean, spelled out |
 | `work_dir_not_found` | The directory is not there, or is not a directory | It is your directory, so this is a typo — the server will not create it |

@@ -90,6 +90,17 @@ scripts/                     codesign / notarize / homebrew, from org templates
 
 ## Gotchas
 
+**Containment: the workspace base is verified by real path, because the path is
+handed to code outside any root.** `os.Root` contains operations *within* the
+root but resolves the root path itself normally, so `os.OpenRoot` on a symlink
+planted at `<work_dir>/<id>` anchors on the link's target and every read and
+write lands outside `work_dir` while reporting success.
+`workspace.makeBaseDir` therefore creates the directory through an `os.Root` on
+`work_dir` **and** compares `filepath.EvalSymlinks` of the result against
+`<real work_dir>/<id>`. The comparison is the part that must stay: `w.BaseDir`
+is afterwards passed to `os.OpenRoot` and, for the recording, to the decoder.
+`TestEnsureUnderRefusesLinkedWorkspaceDir` pins it.
+
 **stdout is the transport.** `voice-scribe mcp` speaks JSON-RPC over stdout,
 and `transcribe` writes the transcript there, so everything else —
 progress, runtime logs, warnings — goes to stderr. `engine.SetLogHandler` exists
