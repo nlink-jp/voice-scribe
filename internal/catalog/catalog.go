@@ -8,7 +8,15 @@
 //
 // Every field here was verified against the Hugging Face API on 2026-08-08.
 // Sizes and licenses are recorded rather than guessed; when adding an entry,
-// check the upstream repository rather than copying a neighbour's values.
+// check the source rather than copying a neighbour's values.
+//
+// For License that source is the model card of the *weights*, which is not
+// always the repository named in Repo: three entries here are fetched from
+// ggerganov/whisper.cpp, a conversion repo that declares license: mit for its
+// own code and ggml files. The weights it converted carry their own terms, and
+// they are not uniform even within one vendor -- openai/whisper-large-v3-turbo
+// is mit while openai/whisper-large-v3 and openai/whisper-base are apache-2.0.
+// Each entry names the weights it came from next to its License.
 package catalog
 
 import (
@@ -25,7 +33,9 @@ type Entry struct {
 	Kind        store.Kind
 	Description string
 
-	// Repo and File locate the weights on Hugging Face.
+	// Repo and File locate the file to download on Hugging Face. For a
+	// converted model this is the conversion repo, not where the weights
+	// originate -- see License.
 	Repo string
 	File string
 
@@ -41,7 +51,10 @@ type Entry struct {
 	// upstream has already fixed a stack-buffer-overflow reachable from a
 	// malformed tensor header, so a tampered model is a memory-safety problem
 	// rather than merely a wrong transcript.
-	SHA256  string
+	SHA256 string
+	// License is the licence of the weights, taken from the model card of the
+	// repository that published them -- not from Repo when Repo merely
+	// redistributes a conversion.
 	License string
 	// Default marks the entry suggested for its language when nothing is set.
 	Default bool
@@ -119,7 +132,8 @@ var entries = []Entry{
 		Quantization: "q5_0",
 		SizeBytes:    537819875,
 		SHA256:       "4a3b92192b5d3578ff854a5876213e2e27af0c2d357492c2d14271e82c303658",
-		License:      "apache-2.0",
+		// Weights: kotoba-tech/kotoba-whisper-v2.0, which declares apache-2.0.
+		License: "apache-2.0",
 	},
 	{
 		Name:         "large-v3-turbo",
@@ -130,8 +144,11 @@ var entries = []Entry{
 		Quantization: "q5_0",
 		SizeBytes:    574041195,
 		SHA256:       "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
-		License:      "mit",
-		Default:      true,
+		// Weights: openai/whisper-large-v3-turbo, which declares mit -- unlike
+		// the rest of the family. Correct as it stands; do not align it with
+		// its neighbours.
+		License: "mit",
+		Default: true,
 	},
 	{
 		Name:         "large-v3",
@@ -142,7 +159,8 @@ var entries = []Entry{
 		Quantization: "q5_0",
 		SizeBytes:    1081140203,
 		SHA256:       "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1",
-		License:      "mit",
+		// Weights: openai/whisper-large-v3, which declares apache-2.0.
+		License: "apache-2.0",
 	},
 	{
 		Name:         "base",
@@ -153,7 +171,8 @@ var entries = []Entry{
 		Quantization: "q5_1",
 		SizeBytes:    59707625,
 		SHA256:       "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
-		License:      "mit",
+		// Weights: openai/whisper-base, which declares apache-2.0.
+		License: "apache-2.0",
 	},
 	{
 		// Speaker diarization needs two models working together: segmentation

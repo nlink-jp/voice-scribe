@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`large-v3` and `base` were listed under the wrong licence.** Both carried
+  `mit`, which is what `ggerganov/whisper.cpp` declares for the conversion repo
+  the ggml files are fetched from. The weights are OpenAI's and their model
+  cards declare `apache-2.0`, so `models list` and `models pull` reported terms
+  that were not the ones attached to the model. Checked against the Hugging
+  Face model cards on 2026-09-21; `models list` now shows `apache-2.0` for
+  both.
+- The family is **not uniform**, which is what hid this: `large-v3-turbo` —
+  the default, and the entry anyone spot-checking would look at — really is
+  `mit`. It is unchanged, and now says next to its value why, so it does not
+  get aligned with its neighbours later. `kotoba-whisper-v2.0` was already
+  right. Each entry now names the weights its licence was read from, and the
+  package comment says to take the licence from the weights' model card rather
+  than from the repository the file is downloaded from.
+
 ## [0.4.4] - 2026-09-21
 
 ### Security
