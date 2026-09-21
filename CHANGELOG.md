@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   written outside the directory you named and the call reported success. The
   workspace directory is now created through an `os.Root` on `work_dir` and
   then verified by real path; a workspace whose name resolves elsewhere is
-  refused with `path_not_allowed`, naming the id and what it resolved to.
+  refused with `path_not_allowed`, naming the id and what it resolved to. See
+  [ADR-0012](docs/en/adr/0012-verify-workspace-base-by-real-path.md).
 
 ### Documentation
 
