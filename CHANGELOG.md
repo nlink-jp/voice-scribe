@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-09-21
+
+### Fixed
+
+- **A corrected licence now reaches a model you already pulled.** v0.4.5 fixed
+  `large-v3` and `base` in the catalog, but `models list` read the licence
+  recorded in the registry at install time and never consulted the catalog, so
+  an installed copy went on reporting the old terms: in one run the same binary
+  showed `mit` for an installed `base` and `apache-2.0` for the catalog entry.
+  What a user read depended on when they pulled. Both surfaces — the table and
+  `--json`, which the MCP `list_models` tool reuses — now take the licence from
+  the catalog whenever the model is still in it. A model that has left the
+  catalog keeps its recorded licence, reported with no source, because that is
+  the last thing known about it.
+- The stored licence was only ever a copy of the catalog's value; it is not
+  independently derived, so there was nothing for it to be right about that the
+  catalog could be wrong about. Licence terms describe the weights rather than
+  the installed bytes, which is why this differs from `sha256`, where the
+  recorded value is evidence about the local file and stays.
+
+### Added
+
+- `weights_repo` on installed entries too, so a licence is never shown without
+  saying which card it was read from. It is empty for a model that is no longer
+  in the catalog.
+
 ## [0.4.5] - 2026-09-21
 
 ### Added

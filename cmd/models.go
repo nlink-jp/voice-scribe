@@ -91,8 +91,11 @@ type installedView struct {
 	SizeBytes    int64  `json:"size_bytes,omitempty"`
 	SHA256       string `json:"sha256,omitempty"`
 	License      string `json:"license,omitempty"`
-	Role         string `json:"role,omitempty"`
-	Path         string `json:"path"`
+	// WeightsRepo is the card License was read from. Empty for a model that is
+	// no longer in the catalog, where the recorded licence is all that is known.
+	WeightsRepo string `json:"weights_repo,omitempty"`
+	Role        string `json:"role,omitempty"`
+	Path        string `json:"path"`
 }
 
 type catalogView struct {
@@ -140,9 +143,10 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 			w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 			fmt.Fprintln(w, "NAME\tKIND\tLANG\tQUANT\tSIZE\tLICENSE\tCHECKED")
 			for _, m := range installed {
+				lic, _ := licenceOf(m)
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 					m.Name, m.Kind, dash(m.Language), dash(m.Quantization),
-					humanBytes(m.SizeBytes), dash(m.License), checkedLabel(m))
+					humanBytes(m.SizeBytes), dash(lic), checkedLabel(m))
 			}
 			w.Flush()
 
@@ -174,11 +178,31 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 // viewOf and catalogViewOf are the single definition of the JSON shapes. The
 // MCP list_models tool reuses them so the two surfaces cannot disagree about
 // what is installed.
+// licenceOf answers what to show for an installed model, and where that answer
+// came from. The licence stored in the registry is a copy of the catalog's
+// value taken at install time -- it is never derived independently -- so a
+// correction to the catalog has to reach it. v0.4.5 corrected large-v3 and
+// base, and an already-installed copy went on reporting the conversion repo's
+// terms: what a user read depended on when they pulled.
+//
+// The catalog wins whenever the model is still in it. Licence terms describe
+// the weights, not the installed bytes, so unlike SHA256 there is nothing about
+// the local file the catalog could be wrong about. For a model that has left
+// the catalog the recorded value is the last thing known, reported with no
+// source.
+func licenceOf(m store.Model) (license, weightsRepo string) {
+	if e, ok := catalog.Lookup(m.Name); ok {
+		return e.License, e.WeightsRepo
+	}
+	return m.License, ""
+}
+
 func viewOf(m store.Model) installedView {
+	license, weightsRepo := licenceOf(m)
 	return installedView{
 		Name: m.Name, Kind: string(m.Kind), Language: m.Language,
 		Quantization: m.Quantization, SizeBytes: m.SizeBytes, SHA256: m.SHA256,
-		License: m.License, Role: m.Role, Path: m.Path,
+		License: license, WeightsRepo: weightsRepo, Role: m.Role, Path: m.Path,
 	}
 }
 
