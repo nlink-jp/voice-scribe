@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   right. Each entry now names the weights its licence was read from, and the
   package comment says to take the licence from the weights' model card rather
   than from the repository the file is downloaded from.
+- **All 7 entries were checked against their upstream weights**, not just the
+  two that were wrong: `pyannote/segmentation-3.0` (mit), 3D-Speaker
+  (apache-2.0) and `snakers4/silero-vad` (mit) are each fetched from a mirror
+  too, and each was already correct. Every entry now records the weights its
+  licence was read from.
 
 ## [0.4.4] - 2026-09-21
 

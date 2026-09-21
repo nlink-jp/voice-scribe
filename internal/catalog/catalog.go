@@ -186,8 +186,9 @@ var entries = []Entry{
 		File:        "model.onnx",
 		SizeBytes:   5992913,
 		SHA256:      "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
-		// The ONNX export ships pyannote's own MIT licence, (c) 2022 CNRS. The
-		// upstream Hugging Face repo is gated; this mirror is not.
+		// Weights: pyannote/segmentation-3.0, which declares mit. The ONNX
+		// export ships pyannote's own MIT licence, (c) 2022 CNRS. The upstream
+		// Hugging Face repo is gated; this mirror is not.
 		License: "mit",
 		Default: true,
 		Role:    RoleSegmentation,
@@ -200,9 +201,11 @@ var entries = []Entry{
 		File:        "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
 		SizeBytes:   28281164,
 		SHA256:      "aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2",
-		License:     "apache-2.0",
-		Default:     true,
-		Role:        RoleEmbedding,
+		// Weights: 3D-Speaker (github.com/modelscope/3D-Speaker), Apache-2.0.
+		// csukuangfj/speaker-embedding-models only redistributes the export.
+		License: "apache-2.0",
+		Default: true,
+		Role:    RoleEmbedding,
 	},
 	{
 		Name:        "silero-vad",
@@ -212,7 +215,9 @@ var entries = []Entry{
 		File:        "ggml-silero-v5.1.2.bin",
 		SizeBytes:   885098,
 		SHA256:      "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
-		License:     "mit",
+		// Weights: snakers4/silero-vad, MIT. ggml-org/whisper-vad only
+		// redistributes the ggml conversion.
+		License: "mit",
 	},
 }
 
