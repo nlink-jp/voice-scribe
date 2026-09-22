@@ -80,9 +80,8 @@ type ModelLister func(scope string) (any, error)
 type Deps struct {
 	// WS materializes workspaces under the caller's work directory.
 	WS *workspace.Manager
-	// WorkDir resolves and validates the per-call work directory. The zero
-	// value works; Denied names directories this server refuses to write
-	// into on a caller's say-so.
+	// WorkDir resolves and validates the per-call work directory. Build it
+	// with workdir.NewResolver(dataDir); the zero value refuses every call.
 	WorkDir workdir.Resolver
 	// Transcribe performs the actual work (real engine or a test fake).
 	Transcribe Transcriber

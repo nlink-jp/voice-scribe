@@ -53,9 +53,9 @@ What is refused there is a credential or agent-control location under your home
 (`~/.ssh`, `~/.aws`, `~/.kube`, `~/.gnupg`, `~/.config/gcloud`, `~/.config/gh`,
 `~/.netrc`, `~/Library/Keychains`, `~/.claude`, `~/.codex` and the rest of the
 list gem-agent and lagent use) and any `.env` file except its templates
-(`.env.example`, `.env.sample`, `.env.template`, `.env.dist`). It is found under
-any spelling — another case, a link, the path as given or resolved — and the
-refusal names the location. The transcript still lands in the workspace either
+(`.env.example`, `.env.sample`, `.env.template`, `.env.dist`), and so is wherever a link directly inside one of those
+directories points. It is found under any spelling — another case, a link, the
+path as given or resolved — and the refusal names the location. The transcript still lands in the workspace either
 way.
 
 ## Tools
@@ -193,12 +193,12 @@ Every failure carries a stable `code` you can branch on.
 |---|---|---|
 | `missing_argument` | A required argument was absent | Read the message; it names the argument |
 | `invalid_arguments` | Unknown or mistyped argument | Arguments are strict — check the spelling against the schema |
-| `path_not_allowed` | Path was absolute, escaped the workspace, was a symlink out of it, or the workspace directory was itself a symlink | Use a workspace-relative path to a real file, and a `workspace_id` that is a real directory under `work_dir` |
+| `path_not_allowed` | A relative path escaped the workspace or was a symlink out of it, the workspace directory was itself a symlink, or an absolute `audio` path is a credential or agent-control location | Use a workspace-relative path to a real file, or an absolute path outside those locations, and a `workspace_id` that is a real directory under `work_dir` |
 | `work_dir_required` | No `work_dir` argument, and your runtime set no `_meta` hint (or you sent one of the old names) | Pass the absolute path of a directory you can read back |
 | `work_dir_invalid` | Not absolute, started with `~`, or contained `..` | Pass the path you mean, spelled out |
 | `work_dir_not_found` | The directory is not there, or is not a directory | It is your directory, so this is a typo — the server will not create it |
 | `work_dir_not_writable` | The server cannot write there | Pass a directory you own |
-| `work_dir_denied` | A system location, your home directory itself, or the server's own data directory | Pass your session or working directory |
+| `work_dir_denied` | A system location, your home directory itself, a credential or agent-control location (or where a link directly inside one points), the server's own data directory, or the home directory cannot be determined — `details.reason` says which: `system_dir`, `home_dir`, `sensitive_path`, `server_dir`, `home_unknown`, `unconfigured`, `unresolvable_path` | Pass your session or working directory |
 | `input_not_found` | The recording is not in the workspace | Put it there, or fix `work_dir` / `workspace_id` |
 | `decode_failed` | The container or codec could not be read | Convert to m4a or wav |
 | `model_not_found` | The named model is not installed | `list_models`, then `voice-scribe models pull <name>` at a terminal |

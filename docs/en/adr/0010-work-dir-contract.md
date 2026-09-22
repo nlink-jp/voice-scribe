@@ -1,6 +1,7 @@
 # ADR-0010: The work dir is taken as a per-call `work_dir`, with no default root
 
-- Status: Accepted
+- Status: Accepted — its implementation (the checks of §3 and the Amendment's blacklist) is
+  replaced by ADR-0013 (nlink-jp/pathguard)
 - Date: 2026-09-13
 
 ## Context
