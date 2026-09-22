@@ -195,6 +195,7 @@ directory under `work_dir`: a symlink planted at `<work_dir>/<workspace_id>` is
 refused rather than followed, so no transcript lands outside the directory you
 named. `get_usage` returns the full manual; agents should call it once before
 their first transcription.
+Two spellings still get past it — a name in another Unicode normalisation and a hard link; the limits are listed in [ADR-0013](docs/en/adr/0013-pathguard.md).
 
 Downloading models is deliberately **not** available over MCP — hundreds of
 megabytes is a decision for whoever is at the terminal. Use
