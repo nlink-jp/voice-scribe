@@ -73,6 +73,12 @@ func (r Resolver) Validate(dir string) (string, error) {
 	return resolved, toolErr(err)
 }
 
+// CheckBeneath reports why dir — <work_dir>/<workspace_id>, the directory a
+// call actually uses, which may not exist yet — may not be used, as a
+// work_dir_denied toolerr, or nil. The workspace manager calls it before it
+// makes or uses a workspace.
+func (r Resolver) CheckBeneath(dir string) error { return toolErr(r.r.CheckBeneath(dir)) }
+
 // Sensitive reports why a path may not be read on a caller's say-so, or ""
 // when it may be. Callers own the error code, since what an unreadable path
 // means differs per tool. Pass every spelling you have — as the caller gave

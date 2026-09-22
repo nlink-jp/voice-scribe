@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/nlink-jp/voice-scribe/internal/config"
+	"github.com/nlink-jp/voice-scribe/internal/mcp/toolerr"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/tools"
 	"github.com/nlink-jp/voice-scribe/internal/store"
 )
@@ -96,5 +98,34 @@ func TestMCPEngineParamsCarryTheRequest(t *testing.T) {
 	}
 	if params.Threads != 6 {
 		t.Errorf("Threads = %d, want the configured 6", params.Threads)
+	}
+}
+
+// The server's own wiring judges every workspace directory: a workspace_id
+// that puts the workspace in a credential directory beneath a valid work_dir
+// (~/.config + gh) is refused, and so is the server's own data directory as a
+// work_dir.
+func TestTheServersWiringJudgesWorkspaceDirectories(t *testing.T) {
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_DATA_HOME", "")
+	cfg := filepath.Join(home, ".config")
+	if err := os.MkdirAll(cfg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	r, ws := workDirAndWorkspaces()
+	var te *toolerr.Error
+	if _, err := ws.EnsureUnder(cfg, "gh"); !errors.As(err, &te) || te.Code != toolerr.CodeWorkDirDenied {
+		t.Errorf("EnsureUnder(~/.config, gh) = %v, want %s", err, toolerr.CodeWorkDirDenied)
+	}
+	data := serverDataDir()
+	if err := os.MkdirAll(data, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Validate(data); !errors.As(err, &te) || te.Code != toolerr.CodeWorkDirDenied {
+		t.Errorf("Validate(server data dir) = %v, want %s", err, toolerr.CodeWorkDirDenied)
 	}
 }

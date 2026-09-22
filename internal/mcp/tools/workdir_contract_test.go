@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -236,5 +237,31 @@ func TestEveryRequiredNameIsDeclared(t *testing.T) {
 					"a strict client refuses the whole tool list", tool.Name, name)
 			}
 		}
+	}
+}
+
+// The directory a call actually uses is <work_dir>/<workspace_id>, and it is
+// judged too: work_dir=~/.config with workspace_id=gh would otherwise land the
+// workspace in ~/.config/gh, a credential directory, and write into it.
+func TestTheWorkspaceDirectoryIsJudgedNotOnlyTheWorkDir(t *testing.T) {
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+	cfg := filepath.Join(home, ".config")
+	if err := os.MkdirAll(cfg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	h := newHarness(t)
+	err = h.callErr(t, "transcribe", map[string]any{
+		"work_dir": cfg, "workspace_id": "gh", "audio": "meeting.m4a",
+	})
+	var te *toolerr.Error
+	if !errors.As(err, &te) || te.Code != toolerr.CodeWorkDirDenied {
+		t.Fatalf("transcribe into ~/.config/gh = %v, want %s", err, toolerr.CodeWorkDirDenied)
+	}
+	if _, serr := os.Stat(filepath.Join(cfg, "gh")); !os.IsNotExist(serr) {
+		t.Errorf("the refused workspace was created (stat: %v)", serr)
 	}
 }

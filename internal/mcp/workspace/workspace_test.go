@@ -41,7 +41,7 @@ func TestResolveInsideRejectsEscape(t *testing.T) {
 }
 
 func TestEnsureUnderWorkDir(t *testing.T) {
-	m := NewManager()
+	m := NewManager(allowAll)
 	work := t.TempDir()
 	w, err := m.EnsureUnder(work, "proj")
 	if err != nil {
@@ -61,7 +61,7 @@ func TestEnsureUnderWorkDir(t *testing.T) {
 }
 
 func TestEnsureUnderRejectsRelativeWorkDir(t *testing.T) {
-	m := NewManager()
+	m := NewManager(allowAll)
 	if _, err := m.EnsureUnder("relative/dir", "proj"); !errors.Is(err, toolerr.New(toolerr.CodeWorkDirInvalid, "")) {
 		t.Errorf("relative work_dir: %v, want work_dir_invalid", err)
 	}
@@ -72,7 +72,7 @@ func TestEnsureUnderRejectsRelativeWorkDir(t *testing.T) {
 // transcript somewhere the caller is not looking — the failure this contract
 // exists to remove (ADR-0010).
 func TestEnsureUnderDoesNotConjureTheWorkDir(t *testing.T) {
-	m := NewManager()
+	m := NewManager(allowAll)
 	missing := filepath.Join(t.TempDir(), "not-there")
 	if _, err := m.EnsureUnder(missing, "proj"); err == nil {
 		t.Fatal("EnsureUnder under a missing work_dir succeeded")
@@ -83,7 +83,7 @@ func TestEnsureUnderDoesNotConjureTheWorkDir(t *testing.T) {
 }
 
 func TestVerifyRegularSymlinkRejected(t *testing.T) {
-	m := NewManager()
+	m := NewManager(allowAll)
 	w, err := m.EnsureUnder(t.TempDir(), "proj")
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +114,7 @@ func TestVerifyRegularSymlinkRejected(t *testing.T) {
 }
 
 func TestReadFileSymlinkEscapeRejected(t *testing.T) {
-	m := NewManager()
+	m := NewManager(allowAll)
 	w, err := m.EnsureUnder(t.TempDir(), "proj")
 	if err != nil {
 		t.Fatal(err)
@@ -128,5 +128,33 @@ func TestReadFileSymlinkEscapeRejected(t *testing.T) {
 	}
 	if _, err := w.ReadFile("link.txt"); !errors.Is(err, toolerr.New(toolerr.CodePathNotAllowed, "")) {
 		t.Errorf("read through escaping symlink: %v, want path_not_allowed", err)
+	}
+}
+
+// allowAll stands for the server's check in tests of the manager's own
+// mechanics; the check itself is workdir.Resolver.CheckBeneath's.
+func allowAll(string) error { return nil }
+
+// The directory actually used is judged before it is made: the check sees
+// <work_dir>/<workspace_id>, and its refusal is returned as is, with nothing
+// created. A Manager without a check refuses every workspace.
+func TestEnsureUnderJudgesTheWorkspaceDirectoryBeforeMakingIt(t *testing.T) {
+	work := t.TempDir()
+	refusal := errors.New("refused")
+	var seen string
+	m := NewManager(func(dir string) error { seen = dir; return refusal })
+	if _, err := m.EnsureUnder(work, "gh"); !errors.Is(err, refusal) {
+		t.Fatalf("EnsureUnder = %v, want the check's refusal", err)
+	}
+	if want := filepath.Join(work, "gh"); seen != want {
+		t.Errorf("the check saw %q, want %q", seen, want)
+	}
+	if _, err := os.Stat(filepath.Join(work, "gh")); !os.IsNotExist(err) {
+		t.Errorf("a refused workspace was created (stat: %v)", err)
+	}
+	for name, m := range map[string]*Manager{"no check": NewManager(nil), "zero": {}} {
+		if _, err := m.EnsureUnder(work, "ws"); err == nil {
+			t.Errorf("%s: EnsureUnder succeeded", name)
+		}
 	}
 }

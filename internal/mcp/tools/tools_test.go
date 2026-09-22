@@ -64,9 +64,10 @@ func newHarness(t *testing.T) *harness {
 
 	root := t.TempDir()
 	fake := &fakeTranscriber{result: transcriptOf("こんにちは。", "本日はテストです。")}
+	workDir := workdir.NewResolver(t.TempDir())
 	deps := &Deps{
-		WS:         workspace.NewManager(),
-		WorkDir:    workdir.NewResolver(t.TempDir()),
+		WS:         workspace.NewManager(workDir.CheckBeneath),
+		WorkDir:    workDir,
 		Transcribe: fake,
 		Jobs:       job.NewManager(context.Background()),
 		ListModels: func(scope string) (any, error) { return map[string]any{"scope": scope}, nil },

@@ -11,8 +11,6 @@ import (
 	"github.com/nlink-jp/voice-scribe/internal/mcp/mcpserver"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/tools"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/transport"
-	"github.com/nlink-jp/voice-scribe/internal/mcp/workdir"
-	"github.com/nlink-jp/voice-scribe/internal/mcp/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -60,9 +58,10 @@ func runMCP(cmd *cobra.Command, args []string) error {
 		}
 	})
 
+	workDir, ws := workDirAndWorkspaces()
 	deps := &tools.Deps{
-		WS:         workspace.NewManager(),
-		WorkDir:    workdir.NewResolver(serverDataDir()),
+		WS:         ws,
+		WorkDir:    workDir,
 		Transcribe: newMCPTranscriber(rt),
 		ListModels: func(scope string) (any, error) { return listModelsView(rt, scope) },
 		Jobs:       job.NewManager(cmd.Context()),

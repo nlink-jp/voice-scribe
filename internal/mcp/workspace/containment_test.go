@@ -32,7 +32,7 @@ func TestEnsureUnderRefusesLinkedWorkspaceDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m := NewManager()
+	m := NewManager(allowAll)
 	w, err := m.EnsureUnder(work, "proj")
 	if err == nil {
 		t.Fatalf("EnsureUnder on a linked workspace dir succeeded: base=%q", w.BaseDir)

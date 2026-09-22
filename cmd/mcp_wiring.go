@@ -10,9 +10,19 @@ import (
 	"github.com/nlink-jp/voice-scribe/internal/diarize"
 	"github.com/nlink-jp/voice-scribe/internal/engine"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/tools"
+	"github.com/nlink-jp/voice-scribe/internal/mcp/workdir"
+	"github.com/nlink-jp/voice-scribe/internal/mcp/workspace"
 	"github.com/nlink-jp/voice-scribe/internal/store"
 	"github.com/nlink-jp/voice-scribe/internal/transcript"
 )
+
+// workDirAndWorkspaces builds the work-directory resolver and the workspace
+// manager that judges every workspace directory with it — the one place the
+// server wires them, so a test can hold the wiring rather than a copy of it.
+func workDirAndWorkspaces() (workdir.Resolver, *workspace.Manager) {
+	r := workdir.NewResolver(serverDataDir())
+	return r, workspace.NewManager(r.CheckBeneath)
+}
 
 // serverDataDir is this server's own data directory (the model store). It is
 // refused as a work directory: a caller naming it would have the server write
