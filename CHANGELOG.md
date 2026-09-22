@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-22
+
+### Changed
+
+- **Path judgement moved to [nlink-jp/pathguard](https://github.com/nlink-jp/pathguard)**
+  (ADR-0013). `internal/mcp/workdir` is now an adapter onto it; the resolver is
+  built with `workdir.NewResolver(dataDir)`. Places are compared by file
+  identity and by names folded the way the disk folds them, instead of by name.
+- `transcribe` now **refuses** the real places under your home from the list
+  gem-agent and lagent use — newly `~/.kube`, `~/.config/gh`, `~/.azure`,
+  `~/.terraform.d`, `~/.gemini`, `~/.config/mcp-bridge`, `~/.netrc`, `~/.npmrc`,
+  `~/.pypirc`, `~/.git-credentials`, `~/.vault-token`, `~/.docker/config.json`,
+  `~/.claude.json`, `~/.bash_history`, `~/.zsh_history` — and every spelling of
+  any refused place (another case, a link, a firmlink), and wherever a link
+  directly inside one of those directories points (a `~/.ssh/config` that links
+  into a sync folder protects the file it points at). When `$HOME` names another
+  directory than the account's home, both are protected.
+- `transcribe` now **accepts** `.env.example`, `.env.sample`, `.env.template` and
+  `.env.dist` as audio paths (templates, not secrets).
+- When the home directory cannot be determined, audio paths and every
+  `work_dir` are **refused**; they used to pass unchecked.
+- A relative `XDG_DATA_HOME` is ignored, as the XDG spec says; it put the data
+  directory under the working directory.
+- `work_dir_denied` carries `reason` in its `details`.
+
 ## [0.4.6] - 2026-09-21
 
 ### Fixed
