@@ -109,8 +109,9 @@ scripts/                     codesign / notarize / homebrew, from org templates
   places every path it may read — an absolute `audio`, both candidates of a
   relative one (workspace, then `work_dir`), the did-you-mean hint's
   candidates — with `workdir.Where` (the last of pathguard's forms) and judges
-  it there with `refusal` before anything asks whether a file exists; existence
-  is then asked of the place (`EvalSymlinks(where)`), not re-walked from the
+  it there with `refusal` before anything asks whether a file exists, each
+  relative candidate before it is looked at; for an absolute path existence is
+  then asked of the place (`EvalSymlinks(where)`), not re-walked from the
   spelling. Do not give a path that does not resolve a branch of its own, and
   do not stat before `refusal` (ADR-0013, amendment v0.5.2).
   `TestExistenceIsNotRevealed` compares the whole answer for a path with and

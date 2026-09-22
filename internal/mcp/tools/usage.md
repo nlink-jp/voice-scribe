@@ -56,8 +56,8 @@ list gem-agent and lagent use) and any `.env` file except its templates
 (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`), and so is wherever a link directly inside one of those
 directories points. It is found under any spelling — another case, a link, the
 path as given or resolved — and the refusal names the location. It is refused
-whether or not a file is there, with the same answer either way, and a relative
-name is judged at both places it may mean before either is looked at. The transcript still lands in the workspace either
+whether or not a file is there, with the same answer either way, and each place
+a relative name may mean is judged before it is looked at. The transcript still lands in the workspace either
 way.
 
 ## Tools
