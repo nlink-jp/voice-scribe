@@ -105,6 +105,17 @@ scripts/                     codesign / notarize / homebrew, from org templates
   `workspace_id=gh` is `~/.config/gh`. The server wires both in
   `workDirAndWorkspaces` (cmd/mcp_wiring.go); a Manager without a check
   refuses every workspace.
+- **Whether a recording exists never changes the answer.** `resolveAudio`
+  places every path it may read — an absolute `audio`, both candidates of a
+  relative one (workspace, then `work_dir`), the did-you-mean hint's
+  candidates — with `workdir.Where` (the last of pathguard's forms) and judges
+  it there with `refusal` before anything asks whether a file exists; existence
+  is then asked of the place (`EvalSymlinks(where)`), not re-walked from the
+  spelling. Do not give a path that does not resolve a branch of its own, and
+  do not stat before `refusal` (ADR-0013, amendment v0.5.2).
+  `TestExistenceIsNotRevealed` compares the whole answer for a path with and
+  without its file; `TestPlacementCorners` pins a link climbing past a file.
+  Seven mutations of the order were all caught by assertion.
 
 **Containment: the workspace base is verified by real path, because the path is
 handed to code outside any root.** `os.Root` contains operations *within* the

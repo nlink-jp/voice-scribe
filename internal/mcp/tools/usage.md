@@ -55,7 +55,9 @@ What is refused there is a credential or agent-control location under your home
 list gem-agent and lagent use) and any `.env` file except its templates
 (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`), and so is wherever a link directly inside one of those
 directories points. It is found under any spelling — another case, a link, the
-path as given or resolved — and the refusal names the location. The transcript still lands in the workspace either
+path as given or resolved — and the refusal names the location. It is refused
+whether or not a file is there, with the same answer either way, and a relative
+name is judged at both places it may mean before either is looked at. The transcript still lands in the workspace either
 way.
 
 ## Tools
@@ -193,7 +195,7 @@ Every failure carries a stable `code` you can branch on.
 |---|---|---|
 | `missing_argument` | A required argument was absent | Read the message; it names the argument |
 | `invalid_arguments` | Unknown or mistyped argument | Arguments are strict — check the spelling against the schema |
-| `path_not_allowed` | A relative path escaped the workspace or was a symlink out of it, the workspace directory was itself a symlink, or an absolute `audio` path is a credential or agent-control location | Use a workspace-relative path to a real file, or an absolute path outside those locations, and a `workspace_id` that is a real directory under `work_dir` |
+| `path_not_allowed` | A relative path escaped the workspace or was a symlink out of it, the workspace directory was itself a symlink, or `audio` (an absolute path, or a relative name at either place it may mean) is a credential or agent-control location or a `.env` file, whether or not it exists | Use a workspace-relative path to a real file, or an absolute path outside those locations, and a `workspace_id` that is a real directory under `work_dir` |
 | `work_dir_required` | No `work_dir` argument, and your runtime set no `_meta` hint (or you sent one of the old names) | Pass the absolute path of a directory you can read back |
 | `work_dir_invalid` | Not absolute, started with `~`, or contained `..` | Pass the path you mean, spelled out |
 | `work_dir_not_found` | The directory is not there, or is not a directory | It is your directory, so this is a typo — the server will not create it |

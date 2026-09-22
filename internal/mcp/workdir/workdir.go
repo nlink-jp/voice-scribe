@@ -85,6 +85,19 @@ func (r Resolver) CheckBeneath(dir string) error { return toolErr(r.r.CheckBenea
 // it, and symlink-resolved. An unknown home directory refuses.
 func Sensitive(paths ...string) string { return pgwd.Sensitive(paths...) }
 
+// Where returns where p is, or would be: every link on it followed, a dangling
+// one by its target, and the rest appended — for a path that exists, what
+// filepath.EvalSymlinks returns. It is the last of pathguard's forms of p, so
+// a path is placed the same way whether or not anything is there, and the
+// floor is asked about that place before anything asks whether it exists.
+func Where(p string) string {
+	f := pathguard.Forms(p)
+	if len(f) == 0 {
+		return p
+	}
+	return f[len(f)-1]
+}
+
 // toolErr carries a pathguard refusal onto toolerr with the same code,
 // message and details; any other error passes through.
 func toolErr(err error) error {
