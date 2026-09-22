@@ -14,6 +14,7 @@ import (
 	"github.com/nlink-jp/voice-scribe/internal/mcp/mcpserver"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/toolerr"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/transport"
+	"github.com/nlink-jp/voice-scribe/internal/mcp/workdir"
 	"github.com/nlink-jp/voice-scribe/internal/mcp/workspace"
 	"github.com/nlink-jp/voice-scribe/internal/transcript"
 )
@@ -65,6 +66,7 @@ func newHarness(t *testing.T) *harness {
 	fake := &fakeTranscriber{result: transcriptOf("こんにちは。", "本日はテストです。")}
 	deps := &Deps{
 		WS:         workspace.NewManager(),
+		WorkDir:    workdir.NewResolver(t.TempDir()),
 		Transcribe: fake,
 		Jobs:       job.NewManager(context.Background()),
 		ListModels: func(scope string) (any, error) { return map[string]any{"scope": scope}, nil },

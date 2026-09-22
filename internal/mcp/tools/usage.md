@@ -49,10 +49,14 @@ workspace *and* in `work_dir` itself (the workspace wins if both hold it), so a
 file you just wrote next to your work directory is found without moving it. It
 is read in place, never copied —
 copying an hour of audio into the workspace to transcribe it would be waste.
-What is refused there is a credential or agent-control location (`~/.ssh`,
-`~/.aws`, `~/.gnupg`, `~/.config/gcloud`, `~/Library/Keychains`, `~/.claude`,
-`~/.codex`, any `.env`), checked on the path as given and on its
-symlink-resolved form. The transcript still lands in the workspace either way.
+What is refused there is a credential or agent-control location under your home
+(`~/.ssh`, `~/.aws`, `~/.kube`, `~/.gnupg`, `~/.config/gcloud`, `~/.config/gh`,
+`~/.netrc`, `~/Library/Keychains`, `~/.claude`, `~/.codex` and the rest of the
+list gem-agent and lagent use) and any `.env` file except its templates
+(`.env.example`, `.env.sample`, `.env.template`, `.env.dist`). It is found under
+any spelling — another case, a link, the path as given or resolved — and the
+refusal names the location. The transcript still lands in the workspace either
+way.
 
 ## Tools
 

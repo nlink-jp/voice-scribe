@@ -184,7 +184,9 @@ and holds all of it.
 Every call names `work_dir`: the absolute path of a directory the agent can read
 back, which is where transcripts are written. A recording may sit there, or be
 named by an absolute path anywhere readable — it is read in place, never copied,
-and only credential locations such as `~/.ssh` are refused. `work_dir` is
+and only credential and agent-control locations such as `~/.ssh` are refused,
+under any spelling ([nlink-jp/pathguard](https://github.com/nlink-jp/pathguard)
+makes that judgement). `work_dir` is
 required and has no default — a transcript written where the caller cannot open
 it is a successful call and a useless one. Every path is confined to that
 directory by the kernel, and the workspace directory itself must be a real

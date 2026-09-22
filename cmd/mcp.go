@@ -62,7 +62,7 @@ func runMCP(cmd *cobra.Command, args []string) error {
 
 	deps := &tools.Deps{
 		WS:         workspace.NewManager(),
-		WorkDir:    workdir.Resolver{Denied: []string{serverDataDir()}},
+		WorkDir:    workdir.NewResolver(serverDataDir()),
 		Transcribe: newMCPTranscriber(rt),
 		ListModels: func(scope string) (any, error) { return listModelsView(rt, scope) },
 		Jobs:       job.NewManager(cmd.Context()),

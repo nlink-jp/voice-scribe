@@ -77,7 +77,9 @@ internal/
   mcp/                       the MCP server: skeleton ported from image-forge,
                              workdir/ resolves the caller's work directory
                              (ADR-0010: argument, then request _meta, then an
-                             error — never a server-owned default),
+                             error — never a server-owned default); an adapter
+                             onto nlink-jp/pathguard, which holds the judgement
+                             (ADR-0013),
                              plus tools/ (four tools and their usage.md)
   store/                     the installed-model registry
   transcript/                output envelope, formatters, language merging
@@ -90,6 +92,13 @@ scripts/                     codesign / notarize / homebrew, from org templates
 ```
 
 ## Gotchas
+
+- **The path judgement is nlink-jp/pathguard's, not this repository's.**
+  `internal/mcp/workdir` only takes `_meta` from the context and carries
+  pathguard's errors onto `toolerr` (ADR-0013). Do not add a location list or a
+  name comparison here; a fix to the judgement is a pathguard release and a
+  dependency bump. Build the resolver with `workdir.NewResolver(dataDir)` — a
+  zero `Resolver` refuses every call, tests included.
 
 **Containment: the workspace base is verified by real path, because the path is
 handed to code outside any root.** `os.Root` contains operations *within* the
