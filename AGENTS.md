@@ -99,6 +99,12 @@ scripts/                     codesign / notarize / homebrew, from org templates
   name comparison here; a fix to the judgement is a pathguard release and a
   dependency bump. Build the resolver with `workdir.NewResolver(dataDir)` — a
   zero `Resolver` refuses every call, tests included.
+- **The workspace directory is judged too.** `workspace.NewManager(check)`
+  takes `workdir.Resolver.CheckBeneath`, and `EnsureUnder` judges
+  `<work_dir>/<workspace_id>` before making it — `work_dir=~/.config` with
+  `workspace_id=gh` is `~/.config/gh`. The server wires both in
+  `workDirAndWorkspaces` (cmd/mcp_wiring.go); a Manager without a check
+  refuses every workspace.
 
 **Containment: the workspace base is verified by real path, because the path is
 handed to code outside any root.** `os.Root` contains operations *within* the
