@@ -248,6 +248,11 @@ func TestDefaultDataDirHonoursXDG(t *testing.T) {
 	if withoutXDG != filepath.Join("/home/u", ".local", "share", "voice-scribe") {
 		t.Errorf("DefaultDataDir without XDG_DATA_HOME = %q", withoutXDG)
 	}
+	// A relative XDG_DATA_HOME is invalid by the spec and ignored.
+	relativeXDG := DefaultDataDir(func(string) string { return "data" }, "/home/u")
+	if relativeXDG != withoutXDG {
+		t.Errorf("DefaultDataDir with a relative XDG_DATA_HOME = %q, want %q", relativeXDG, withoutXDG)
+	}
 }
 
 // TestModelsDirIsIndependentOfTheRegistry pins the property that lets a user

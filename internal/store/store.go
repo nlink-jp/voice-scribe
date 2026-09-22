@@ -112,9 +112,12 @@ func New(dataDir, modelsDir string) (*Store, error) {
 	return &Store{dataDir: dataDir, modelsDir: abs}, nil
 }
 
-// DefaultDataDir returns where the registry lives, honouring XDG.
+// DefaultDataDir returns where the registry lives, honouring XDG. A relative
+// XDG_DATA_HOME is ignored, as the XDG spec says: it would put the data
+// directory under whatever the working directory is, and the work-directory
+// check refuses every call when this server's own directory is not absolute.
 func DefaultDataDir(getenv func(string) string, home string) string {
-	if xdg := getenv("XDG_DATA_HOME"); xdg != "" {
+	if xdg := getenv("XDG_DATA_HOME"); xdg != "" && filepath.IsAbs(xdg) {
 		return filepath.Join(xdg, "voice-scribe")
 	}
 	return filepath.Join(home, ".local", "share", "voice-scribe")
