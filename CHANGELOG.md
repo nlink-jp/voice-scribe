@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-11-04
+
+### Security
+
+- **Checking that `work_dir` is writable no longer writes anything.** The
+  check comes from nlink-jp/pathguard, now v0.3.1 (nlink-jp/pathguard#1). It
+  used to create and remove a probe file by name after judging the directory
+  by name, so a path component swapped for a link in between could put the
+  probe inside a protected place. It is now `access(2)` (`W_OK|X_OK`),
+  which writes nothing.
+
 ## [0.5.3] - 2026-09-22
 
 ### Fixed
