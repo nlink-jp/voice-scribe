@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
+	"github.com/nlink-jp/toml"
 )
 
 // Config is the whole configuration surface.
@@ -192,11 +192,13 @@ func locate(explicitPath string, env Env) (string, error) {
 // error. A silently ignored key is how a user ends up convinced a setting does
 // nothing, and a typo is far more likely than a deliberate unknown key.
 func decodeFile(path string, cfg *Config) error {
-	md, err := toml.DecodeFile(path, cfg)
-	if err != nil {
+	_, err := toml.DecodeFile(path, cfg)
+	var unknown *toml.UnknownKeysError
+	if err != nil && !errors.As(err, &unknown) {
 		return fmt.Errorf("config file %s: %w", path, err)
 	}
-	if undecoded := md.Undecoded(); len(undecoded) > 0 {
+	if unknown != nil {
+		undecoded := unknown.Keys
 		keys := make([]string, 0, len(undecoded))
 		for _, k := range undecoded {
 			// A key this server removed deserves its name and its reason, not
