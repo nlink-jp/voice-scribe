@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `make package` runs govulncheck first (`make vuln`) and stops on a finding,
+  so a release cannot be built past one. It scans the release build — the
+  packages `make test` covers, under the `cgo_whisper` and `cgo_sherpa` tags.
+
 ## [0.5.5] - 2026-11-04
 
 ### Changed

@@ -34,7 +34,7 @@ PKGS := $(shell go list ./... 2>/dev/null | grep -v '/third_party/')
 CODESIGN_IDENTITY ?= Developer ID Application
 NOTARY_PROFILE    ?= nlink-jp-notary
 
-.PHONY: build build-engine build-all package verify-release deps test fmt vet clean clean-deps
+.PHONY: build build-engine build-all package verify-release deps test fmt vet clean clean-deps vuln
 
 ## build: scaffold binary (no transcription runtime)
 build:
@@ -96,9 +96,18 @@ $(S_LIB): $(ORT_ZIP)
 build-all: build-engine
 	@scripts/codesign-darwin.sh $(DIST)/$(BINARY) "$(CODESIGN_IDENTITY)" "$(BINARY)"
 
+## vuln: known vulnerabilities in the modules and the standard library this
+## build uses (govulncheck). `package` depends on it, so a release cannot be
+## built past a finding. It needs the network, and its database changes under
+## an unchanged tree: a finding can appear without a commit. It scans what the
+## release links: the packages `make test` covers, under both runtime tags.
+## That needs the runtimes' headers from the submodules, not the built libraries.
+vuln:
+	govulncheck -tags "$(TAGS)" $(PKGS)
+
 ## package: signed + notarized release zip (canonical binary + README + LICENSE
 ## inside, per the org Release Archive Standard).
-package: build-all
+package: vuln build-all
 	@cd $(DIST) && cp ../README.md ../LICENSE . \
 		&& zip -j $(BINARY)-$(VERSION)-darwin-arm64.zip $(BINARY) README.md LICENSE \
 		&& rm -f README.md LICENSE
